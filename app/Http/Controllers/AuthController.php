@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -33,9 +32,7 @@ class AuthController extends Controller
 
             Log::info('Data tervalidasi:', $validated);
 
-            // HAPUS SEMUA PENGECEKAN UNTUK REGISTER USER
             // Semua role (admin dan user) bisa register tanpa login
-            
             Log::info('Register diizinkan untuk role: ' . $validated['role']);
 
             // Buat user baru
@@ -255,70 +252,6 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menghapus user'
-            ], 500);
-        }
-    }
-
-    /**
-     * Google login
-     */
-    public function googleLogin(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'email' => 'required|email',
-                'name' => 'required|string',
-            ]);
-
-            // Cari atau buat user baru
-            $user = User::firstOrCreate(
-                ['email' => $validated['email']],
-                [
-                    'name' => $validated['name'],
-                    'role' => 'user',
-                    'password' => Hash::make(Str::random(16)),
-                ]
-            );
-
-            // Cek role
-            if ($user->role !== 'user') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Google Sign-In hanya untuk user'
-                ], 403);
-            }
-
-            // Hapus token lama
-            $user->tokens()->delete();
-            
-            // Buat token baru
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                ]
-            ]);
-
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $e->errors()
-            ], 422);
-            
-        } catch (\Exception $e) {
-            Log::error('Google login error: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal login dengan Google'
             ], 500);
         }
     }
