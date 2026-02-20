@@ -15,14 +15,14 @@ class Absensi extends Model
     protected $fillable = [
         'user_id',
         'lokasi_id',
+        'titik_koordinat_lokasi',
+        'titik_koordinat_kamu', // Field baru
         'waktu_absen',
     ];
 
     protected $casts = [
         'waktu_absen' => 'datetime',
     ];
-
-    public $timestamps = true;
 
     public function user()
     {

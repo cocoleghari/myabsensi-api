@@ -12,13 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('absensis', function (Blueprint $table) {
-            $table->id();
+  $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('lokasi_id')->constrained()->onDelete('cascade');
+            $table->string('titik_koordinat_lokasi'); // Koordinat dari lokasi yang dipilih
+            $table->string('titik_koordinat_kamu')->nullable(); // Koordinat real-time pengguna (boleh null)
             $table->timestamp('waktu_absen');
             $table->timestamps();
             
-            // Tambahkan index untuk performa
+            // Index untuk performa
             $table->index(['user_id', 'waktu_absen']);
         });
     }
