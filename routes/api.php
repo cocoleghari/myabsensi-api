@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\UserLokasiController;
+use App\Http\Controllers\AdminAbsensiController; // Tambahkan import ini
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -47,8 +48,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ================= ADMIN Routes =================
     Route::middleware('role:admin')->prefix('admin')->group(function () {
+        // Manajemen User
         Route::get('/users', [AuthController::class, 'getUsers']);
         Route::delete('/users/{id}', [AuthController::class, 'deleteUser']);
+        
+        // ===== ABSENSI ALL USER (TAMBAHAN BARU) =====
+        // Ambil semua data absensi (bisa difilter berdasarkan user_id)
+        Route::get('/absensi/all', [AdminAbsensiController::class, 'getAllAbsensi']);
+        
+        // Ambil semua user dengan role 'user' untuk dropdown filter
+        Route::get('/users/all', [AdminAbsensiController::class, 'getAllUsers']);
     });
     
     // ================= LOKASI Routes (Admin only) =================
