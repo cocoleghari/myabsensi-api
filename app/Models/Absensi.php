@@ -17,7 +17,8 @@ class Absensi extends Model
         'lokasi_id',
         'titik_koordinat_lokasi',
         'titik_koordinat_kamu',
-        'foto_wajah', // Field baru
+        'foto_wajah',
+        'tipe_absen', // Field baru
         'waktu_absen',
     ];
 

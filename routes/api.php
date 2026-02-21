@@ -1,9 +1,10 @@
 <?php
+// routes/api.php
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\UserLokasiController;
-use App\Http\Controllers\AdminAbsensiController; // Tambahkan import ini
+use App\Http\Controllers\AdminAbsensiController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -36,28 +37,27 @@ Route::middleware('auth:sanctum')->group(function () {
         // Lokasi untuk user
         Route::get('/user/lokasi', [UserLokasiController::class, 'getUserLokasi']);
         
-        // Absensi - PASTIKAN INI POST
-        Route::post('/user/absensi', [UserLokasiController::class, 'submitAbsensi']);
+        // Absensi Masuk
+        Route::post('/user/absensi/masuk', [UserLokasiController::class, 'submitAbsensiMasuk']);
+        
+        // Absensi Pulang
+        Route::post('/user/absensi/pulang', [UserLokasiController::class, 'submitAbsensiPulang']);
         
         // Riwayat absensi
         Route::get('/user/absensi/riwayat', [UserLokasiController::class, 'getRiwayatAbsensi']);
         
         // Cek status hari ini
-        Route::get('/user/absensi/cek-hari-ini', [UserLokasiController::class, 'cekStatusHariIni']);
+        Route::get('/user/absensi/cek-status', [UserLokasiController::class, 'cekStatusHariIni']);
     });
 
     // ================= ADMIN Routes =================
     Route::middleware('role:admin')->prefix('admin')->group(function () {
-        // Manajemen User
         Route::get('/users', [AuthController::class, 'getUsers']);
         Route::delete('/users/{id}', [AuthController::class, 'deleteUser']);
-        
-        // ===== ABSENSI ALL USER (TAMBAHAN BARU) =====
-        // Ambil semua data absensi (bisa difilter berdasarkan user_id)
         Route::get('/absensi/all', [AdminAbsensiController::class, 'getAllAbsensi']);
-        
-        // Ambil semua user dengan role 'user' untuk dropdown filter
         Route::get('/users/all', [AdminAbsensiController::class, 'getAllUsers']);
+
+        Route::delete('/absensi/{id}', [AdminAbsensiController::class, 'deleteAbsensi']);
     });
     
     // ================= LOKASI Routes (Admin only) =================
