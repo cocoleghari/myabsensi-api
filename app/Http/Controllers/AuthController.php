@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -16,11 +16,11 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         // Log untuk debugging
-        Log::info('=' . str_repeat('=', 50));
+        Log::info('='.str_repeat('=', 50));
         Log::info('REGISTER ATTEMPT');
         Log::info('Request data:', $request->all());
         Log::info('Headers:', $request->headers->all());
-        
+
         try {
             // Validasi input
             $validated = $request->validate([
@@ -28,12 +28,16 @@ class AuthController extends Controller
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|string|min:6',
                 'role' => 'required|in:admin,user',
-            ]);
+            ],
+                [
+                    //
+                ]
+            );
 
             Log::info('Data tervalidasi:', $validated);
 
             // Semua role (admin dan user) bisa register tanpa login
-            Log::info('Register diizinkan untuk role: ' . $validated['role']);
+            Log::info('Register diizinkan untuk role: '.$validated['role']);
 
             // Buat user baru
             $user = User::create([
@@ -44,9 +48,9 @@ class AuthController extends Controller
             ]);
 
             Log::info('User registered successfully:', [
-                'id' => $user->id, 
+                'id' => $user->id,
                 'email' => $user->email,
-                'role' => $user->role
+                'role' => $user->role,
             ]);
 
             return response()->json([
@@ -56,26 +60,26 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $user->role
-                ]
+                    'role' => $user->role,
+                ],
             ], 201);
 
         } catch (ValidationException $e) {
             Log::warning('Validasi gagal:', $e->errors());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Validasi gagal',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
-            
+
         } catch (\Exception $e) {
-            Log::error('Register error: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+            Log::error('Register error: '.$e->getMessage());
+            Log::error('Stack trace: '.$e->getTraceAsString());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan server: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan server: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -85,9 +89,9 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        Log::info('=' . str_repeat('=', 50));
+        Log::info('='.str_repeat('=', 50));
         Log::info('LOGIN ATTEMPT:', ['email' => $request->email]);
-        
+
         try {
             // Validasi input
             $validated = $request->validate([
@@ -98,26 +102,28 @@ class AuthController extends Controller
             // Cari user berdasarkan email
             $user = User::where('email', $validated['email'])->first();
 
-            if (!$user) {
+            if (! $user) {
                 Log::warning('Login failed: email not found', ['email' => $validated['email']]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Email tidak ditemukan'
+                    'message' => 'Email tidak ditemukan',
                 ], 404);
             }
 
             // Cek password
-            if (!Hash::check($validated['password'], $user->password)) {
+            if (! Hash::check($validated['password'], $user->password)) {
                 Log::warning('Login failed: wrong password', ['email' => $validated['email']]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Password salah'
+                    'message' => 'Password salah',
                 ], 401);
             }
 
             // Hapus token lama
             $user->tokens()->delete();
-            
+
             // Buat token baru
             $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -132,24 +138,24 @@ class AuthController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
-                ]
+                ],
             ]);
 
         } catch (ValidationException $e) {
             Log::warning('Login validasi gagal:', $e->errors());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Validasi gagal',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
-            
+
         } catch (\Exception $e) {
-            Log::error('Login error: ' . $e->getMessage());
-            
+            Log::error('Login error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan server'
+                'message' => 'Terjadi kesalahan server',
             ], 500);
         }
     }
@@ -162,20 +168,20 @@ class AuthController extends Controller
         try {
             // Hapus semua token user
             $request->user()->tokens()->delete();
-            
+
             Log::info('User logged out successfully:', ['user_id' => $request->user()->id]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Berhasil logout'
+                'message' => 'Berhasil logout',
             ]);
-            
+
         } catch (\Exception $e) {
-            Log::error('Logout error: ' . $e->getMessage());
-            
+            Log::error('Logout error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal logout'
+                'message' => 'Gagal logout',
             ], 500);
         }
     }
@@ -190,26 +196,26 @@ class AuthController extends Controller
             if ($request->user()->role !== 'admin') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized'
+                    'message' => 'Unauthorized',
                 ], 403);
             }
 
             // Ambil semua users
             $users = User::select('id', 'name', 'email', 'role')
-                        ->orderBy('name')
-                        ->get();
+                ->orderBy('name')
+                ->get();
 
             return response()->json([
                 'success' => true,
-                'data' => $users
+                'data' => $users,
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Get users error: ' . $e->getMessage());
-            
+            Log::error('Get users error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data users'
+                'message' => 'Gagal mengambil data users',
             ], 500);
         }
     }
@@ -222,10 +228,10 @@ class AuthController extends Controller
         try {
             $user = User::find($id);
 
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User tidak ditemukan'
+                    'message' => 'User tidak ditemukan',
                 ], 404);
             }
 
@@ -233,7 +239,7 @@ class AuthController extends Controller
             if (auth()->id() == $user->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Tidak bisa menghapus akun sendiri'
+                    'message' => 'Tidak bisa menghapus akun sendiri',
                 ], 403);
             }
 
@@ -243,15 +249,15 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'User berhasil dihapus'
+                'message' => 'User berhasil dihapus',
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Delete user error: ' . $e->getMessage());
-            
+            Log::error('Delete user error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menghapus user'
+                'message' => 'Gagal menghapus user',
             ], 500);
         }
     }
