@@ -116,10 +116,6 @@ class LokasiController extends Controller
         }
     }
 
-    /**
-     * PUT /api/lokasi/{id}
-     * Mengupdate data lokasi dengan validasi duplikat
-     */
     public function update(Request $request, $id)
     {
         try {
@@ -182,10 +178,6 @@ class LokasiController extends Controller
         }
     }
 
-    /**
-     * DELETE /api/lokasi/{id}
-     * Menghapus lokasi
-     */
     public function destroy($id)
     {
         try {
@@ -209,10 +201,6 @@ class LokasiController extends Controller
         }
     }
 
-    /**
-     * GET /api/lokasi/users
-     * Mengambil semua user dengan role 'user' untuk dropdown
-     */
     public function users()
     {
         try {
@@ -233,10 +221,6 @@ class LokasiController extends Controller
         }
     }
 
-    /**
-     * GET /api/lokasi/cek-duplikat
-     * Cek apakah koordinat sudah ada untuk user tertentu
-     */
     public function cekDuplikat(Request $request)
     {
         try {

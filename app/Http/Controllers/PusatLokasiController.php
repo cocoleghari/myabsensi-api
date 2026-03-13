@@ -9,39 +9,25 @@ use Illuminate\Support\Facades\Validator;
 
 class PusatLokasiController extends Controller
 {
-    /**
-     * GET /api/admin/pusat-lokasi
-     * Mendapatkan semua data pusat lokasi
-     *
-     * Query Parameters:
-     * - search: string (opsional) untuk pencarian
-     * - sort_field: string (opsional) field untuk sorting
-     * - sort_order: string (opsional) asc/desc
-     * - per_page: int (opsional) jumlah data per halaman
-     */
     public function index(Request $request)
     {
         try {
-            // Log untuk debugging
-            Log::info('📌 GET Pusat Lokasi - Start');
+            Log::info('GET Pusat Lokasi - Start');
 
             $query = PusatLokasi::query();
 
-            // Fitur pencarian berdasarkan nama atau keterangan
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('nama_lokasi', 'like', "%{$search}%")
                         ->orWhere('keterangan', 'like', "%{$search}%");
                 });
-                Log::info('🔍 Search applied: '.$search);
+                Log::info('Search applied: '.$search);
             }
 
-            // Fitur sorting
             $sortField = $request->get('sort_field', 'created_at');
             $sortOrder = $request->get('sort_order', 'desc');
 
-            // Validasi field sorting untuk mencegah SQL injection
             $allowedSortFields = ['id', 'nama_lokasi', 'created_at', 'updated_at'];
             if (in_array($sortField, $allowedSortFields)) {
                 $query->orderBy($sortField, $sortOrder === 'asc' ? 'asc' : 'desc');
@@ -49,16 +35,15 @@ class PusatLokasiController extends Controller
                 $query->orderBy('created_at', 'desc');
             }
 
-            // Pagination atau all
             if ($request->has('per_page') && is_numeric($request->per_page)) {
                 $data = $query->paginate($request->per_page);
-                Log::info('📊 Pagination: page '.($request->get('page', 1)).', per_page: '.$request->per_page);
+                Log::info('Pagination: page '.($request->get('page', 1)).', per_page: '.$request->per_page);
             } else {
                 $data = $query->get();
-                Log::info('📊 Total data: '.$data->count());
+                Log::info('Total data: '.$data->count());
             }
 
-            Log::info('✅ Get pusat lokasi success');
+            Log::info('Get pusat lokasi success');
 
             return response()->json([
                 'success' => true,
@@ -67,7 +52,7 @@ class PusatLokasiController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('❌ Error get pusat lokasi: '.$e->getMessage());
+            Log::error('Error get pusat lokasi: '.$e->getMessage());
             Log::error('Stack trace: '.$e->getTraceAsString());
 
             return response()->json([
@@ -78,19 +63,10 @@ class PusatLokasiController extends Controller
         }
     }
 
-    /**
-     * POST /api/admin/pusat-lokasi
-     * Menyimpan data pusat lokasi baru
-     *
-     * Body Parameters:
-     * - nama_lokasi: string (required)
-     * - titik_kordinat: string (required) format: "lat, lng"
-     * - keterangan: string (optional)
-     */
     public function store(Request $request)
     {
         try {
-            Log::info('📌 POST Pusat Lokasi - Start');
+            Log::info('POST Pusat Lokasi - Start');
             Log::info('Request data:', $request->all());
 
             // Validasi input
@@ -101,7 +77,7 @@ class PusatLokasiController extends Controller
             ]);
 
             if ($validator->fails()) {
-                Log::warning('⚠️ Validasi gagal:', $validator->errors()->toArray());
+                Log::warning('Validasi gagal:', $validator->errors()->toArray());
 
                 return response()->json([
                     'success' => false,
@@ -115,7 +91,7 @@ class PusatLokasiController extends Controller
             $parts = explode(',', $kordinat);
 
             if (count($parts) != 2) {
-                Log::warning('⚠️ Format koordinat tidak valid: '.$kordinat);
+                Log::warning('Format koordinat tidak valid: '.$kordinat);
 
                 return response()->json([
                     'success' => false,
@@ -127,7 +103,7 @@ class PusatLokasiController extends Controller
             $lng = trim($parts[1]);
 
             if (! is_numeric($lat) || ! is_numeric($lng)) {
-                Log::warning('⚠️ Koordinat bukan angka: lat='.$lat.', lng='.$lng);
+                Log::warning('Koordinat bukan angka: lat='.$lat.', lng='.$lng);
 
                 return response()->json([
                     'success' => false,
@@ -142,7 +118,7 @@ class PusatLokasiController extends Controller
                 'keterangan' => $request->keterangan,
             ]);
 
-            Log::info('✅ Pusat lokasi created', [
+            Log::info('Pusat lokasi created', [
                 'id' => $pusatLokasi->id,
                 'nama' => $pusatLokasi->nama_lokasi,
             ]);
@@ -154,7 +130,7 @@ class PusatLokasiController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            Log::error('❌ Error store pusat lokasi: '.$e->getMessage());
+            Log::error('Error store pusat lokasi: '.$e->getMessage());
             Log::error('Stack trace: '.$e->getTraceAsString());
 
             return response()->json([
@@ -165,19 +141,15 @@ class PusatLokasiController extends Controller
         }
     }
 
-    /**
-     * GET /api/admin/pusat-lokasi/{id}
-     * Mendapatkan detail pusat lokasi berdasarkan ID
-     */
     public function show($id)
     {
         try {
-            Log::info('📌 GET Pusat Lokasi Detail - ID: '.$id);
+            Log::info('GET Pusat Lokasi Detail - ID: '.$id);
 
             $pusatLokasi = PusatLokasi::find($id);
 
             if (! $pusatLokasi) {
-                Log::warning('⚠️ Pusat lokasi not found: '.$id);
+                Log::warning('Pusat lokasi not found: '.$id);
 
                 return response()->json([
                     'success' => false,
@@ -192,7 +164,7 @@ class PusatLokasiController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('❌ Error show pusat lokasi: '.$e->getMessage());
+            Log::error('Error show pusat lokasi: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -201,20 +173,16 @@ class PusatLokasiController extends Controller
         }
     }
 
-    /**
-     * PUT /api/admin/pusat-lokasi/{id}
-     * Mengupdate data pusat lokasi
-     */
     public function update(Request $request, $id)
     {
         try {
-            Log::info('📌 PUT Pusat Lokasi - ID: '.$id);
+            Log::info('PUT Pusat Lokasi - ID: '.$id);
             Log::info('Request data:', $request->all());
 
             $pusatLokasi = PusatLokasi::find($id);
 
             if (! $pusatLokasi) {
-                Log::warning('⚠️ Pusat lokasi not found: '.$id);
+                Log::warning('Pusat lokasi not found: '.$id);
 
                 return response()->json([
                     'success' => false,
@@ -230,7 +198,7 @@ class PusatLokasiController extends Controller
             ]);
 
             if ($validator->fails()) {
-                Log::warning('⚠️ Validasi gagal:', $validator->errors()->toArray());
+                Log::warning('Validasi gagal:', $validator->errors()->toArray());
 
                 return response()->json([
                     'success' => false,
@@ -265,7 +233,7 @@ class PusatLokasiController extends Controller
             // Update data
             $pusatLokasi->update($request->only(['nama_lokasi', 'titik_kordinat', 'keterangan']));
 
-            Log::info('✅ Pusat lokasi updated', ['id' => $pusatLokasi->id]);
+            Log::info('Pusat lokasi updated', ['id' => $pusatLokasi->id]);
 
             return response()->json([
                 'success' => true,
@@ -274,7 +242,7 @@ class PusatLokasiController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('❌ Error update pusat lokasi: '.$e->getMessage());
+            Log::error('Error update pusat lokasi: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -283,14 +251,10 @@ class PusatLokasiController extends Controller
         }
     }
 
-    /**
-     * DELETE /api/admin/pusat-lokasi/{id}
-     * Menghapus data pusat lokasi
-     */
     public function destroy($id)
     {
         try {
-            Log::info('📌 DELETE Pusat Lokasi - ID: '.$id);
+            Log::info(' DELETE Pusat Lokasi - ID: '.$id);
 
             $pusatLokasi = PusatLokasi::find($id);
 
@@ -308,7 +272,7 @@ class PusatLokasiController extends Controller
 
             $pusatLokasi->delete();
 
-            Log::info('✅ Pusat lokasi deleted', ['id' => $id]);
+            Log::info('Pusat lokasi deleted', ['id' => $id]);
 
             return response()->json([
                 'success' => true,
@@ -316,7 +280,7 @@ class PusatLokasiController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('❌ Error delete pusat lokasi: '.$e->getMessage());
+            Log::error('Error delete pusat lokasi: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -325,17 +289,10 @@ class PusatLokasiController extends Controller
         }
     }
 
-    /**
-     * DELETE /api/admin/pusat-lokasi
-     * Menghapus multiple data pusat lokasi
-     *
-     * Body Parameters:
-     * - ids: array of integers (required)
-     */
     public function destroyMultiple(Request $request)
     {
         try {
-            Log::info('📌 DELETE Multiple Pusat Lokasi');
+            Log::info('DELETE Multiple Pusat Lokasi');
             Log::info('Request ids:', $request->all());
 
             $validator = Validator::make($request->all(), [
@@ -344,7 +301,7 @@ class PusatLokasiController extends Controller
             ]);
 
             if ($validator->fails()) {
-                Log::warning('⚠️ Validasi gagal:', $validator->errors()->toArray());
+                Log::warning('Validasi gagal:', $validator->errors()->toArray());
 
                 return response()->json([
                     'success' => false,
@@ -355,7 +312,7 @@ class PusatLokasiController extends Controller
 
             $count = PusatLokasi::whereIn('id', $request->ids)->delete();
 
-            Log::info('✅ Multiple pusat lokasi deleted', [
+            Log::info('Multiple pusat lokasi deleted', [
                 'ids' => $request->ids,
                 'count' => $count,
             ]);
@@ -366,7 +323,7 @@ class PusatLokasiController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('❌ Error delete multiple pusat lokasi: '.$e->getMessage());
+            Log::error('Error delete multiple pusat lokasi: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -375,3 +332,84 @@ class PusatLokasiController extends Controller
         }
     }
 }
+
+// namespace App\Http\Controllers;
+
+// use App\Models\PusatLokasi;
+// use Illuminate\Http\Request;
+
+// class PusatLokasiController extends Controller
+// {
+//     public function index()
+//     {
+//         $data = PusatLokasi::all();
+
+//         return response()->json([
+//             'success' => true,
+//             'data' => $data,
+//         ]);
+//     }
+
+//     public function store(Request $request)
+//     {
+//         $pusatLokasi = PusatLokasi::create([
+//             'nama_lokasi' => $request->nama_lokasi,
+//             'titik_kordinat' => $request->titik_kordinat,
+//             'keterangan' => $request->keterangan,
+//         ]);
+
+//         return response()->json([
+//             'success' => true,
+//             'message' => 'Data berhasil ditambahkan',
+//             'data' => $pusatLokasi,
+//         ]);
+//     }
+
+//     public function show($id)
+//     {
+//         $pusatLokasi = PusatLokasi::find($id);
+
+//         return response()->json([
+//             'success' => true,
+//             'data' => $pusatLokasi,
+//         ]);
+//     }
+
+//     public function update(Request $request, $id)
+//     {
+//         $pusatLokasi = PusatLokasi::find($id);
+
+//         $pusatLokasi->update([
+//             'nama_lokasi' => $request->nama_lokasi,
+//             'titik_kordinat' => $request->titik_kordinat,
+//             'keterangan' => $request->keterangan,
+//         ]);
+
+//         return response()->json([
+//             'success' => true,
+//             'message' => 'Data berhasil diupdate',
+//             'data' => $pusatLokasi,
+//         ]);
+//     }
+
+//     public function destroy($id)
+//     {
+//         $pusatLokasi = PusatLokasi::find($id);
+//         $pusatLokasi->delete();
+
+//         return response()->json([
+//             'success' => true,
+//             'message' => 'Data berhasil dihapus',
+//         ]);
+//     }
+
+//     public function destroyMultiple(Request $request)
+//     {
+//         PusatLokasi::whereIn('id', $request->ids)->delete();
+
+//         return response()->json([
+//             'success' => true,
+//             'message' => 'Data berhasil dihapus',
+//         ]);
+//     }
+// }

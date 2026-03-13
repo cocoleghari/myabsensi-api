@@ -1,7 +1,5 @@
 <?php
 
-// app/Http/Controllers/UserLokasiController.php
-
 namespace App\Http\Controllers;
 
 use App\Models\Absensi;
@@ -13,33 +11,17 @@ use Illuminate\Support\Facades\Storage;
 
 class UserLokasiController extends Controller
 {
-    /**
-     * Ambil lokasi untuk user yang sedang login
-     */
     public function getUserLokasi(Request $request)
     {
         try {
             $user = $request->user();
 
-            if (! $user) {
-                Log::error('User tidak ditemukan');
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User tidak ditemukan',
-                ], 401);
-            }
-
             Log::info('getUserLokasi - User ID: '.$user->id);
-            Log::info('getUserLokasi - User Role: '.$user->role);
 
-            // Ambil lokasi berdasarkan user_id
             $lokasis = Lokasi::where('user_id', $user->id)
                 ->select('id', 'lokasi', 'koordinat')
                 ->orderBy('lokasi')
                 ->get();
-
-            Log::info('Jumlah lokasi ditemukan: '.$lokasis->count());
 
             return response()->json($lokasis);
 
@@ -49,108 +31,144 @@ class UserLokasiController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengambil data lokasi',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * Submit absensi masuk
-     */
-    public function submitAbsensiMasuk(Request $request)
-    {
-        return $this->submitAbsensi($request, 'masuk');
-    }
-
-    /**
-     * Submit absensi pulang
-     */
-    public function submitAbsensiPulang(Request $request)
-    {
-        return $this->submitAbsensi($request, 'pulang');
-    }
-
-    /**
-     * Submit absensi (general)
-     */
-    private function submitAbsensi(Request $request, $tipe)
+    public function submitAbsensiOtomatis(Request $request)
     {
         Log::info('='.str_repeat('=', 50));
-        Log::info('SUBMIT ABSENSI '.strtoupper($tipe).' DIPANGGIL');
-        Log::info('Request all data: '.json_encode($request->all()));
-        Log::info('Has file: '.($request->hasFile('foto_wajah') ? 'YA' : 'TIDAK'));
+        Log::info('SUBMIT ABSENSI OTOMATIS');
+        Log::info('Request data:', $request->all());
 
         try {
             $user = $request->user();
-
-            if (! $user) {
-                Log::error('User tidak ditemukan');
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User tidak ditemukan',
-                ], 401);
-            }
-
-            $lokasiId = $request->lokasi_id;
+            $tipe = $request->tipe_absen;
             $titikKoordinatKamu = $request->titik_koordinat_kamu;
 
             Log::info('User ID: '.$user->id);
-            Log::info('Lokasi ID: '.$lokasiId);
-            Log::info('Titik Koordinat Kamu: '.$titikKoordinatKamu);
             Log::info('Tipe Absen: '.$tipe);
+            Log::info('Posisi User: '.$titikKoordinatKamu);
 
-            // Validasi input
-            if (! $lokasiId) {
+            if (! $tipe || ! in_array($tipe, ['masuk', 'pulang'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Lokasi ID wajib diisi',
+                    'message' => 'Tipe absen tidak valid',
                 ], 422);
             }
 
-            // Ambil data lokasi
-            $lokasi = Lokasi::find($lokasiId);
-
-            if (! $lokasi) {
-                Log::warning("Lokasi $lokasiId tidak ditemukan");
-
+            if (! $titikKoordinatKamu) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Lokasi tidak ditemukan',
-                ], 404);
+                    'message' => 'Titik koordinat kamu wajib diisi',
+                ], 422);
             }
 
-            // Cek kepemilikan
-            if ($lokasi->user_id != $user->id) {
-                Log::warning("Lokasi $lokasiId bukan milik user {$user->id}");
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Lokasi bukan milik anda',
-                ], 403);
-            }
-
-            // Cek apakah sudah absen hari ini (sesuai tipe)
             $sudahAbsen = Absensi::where('user_id', $user->id)
                 ->where('tipe_absen', $tipe)
                 ->whereDate('waktu_absen', now()->toDateString())
                 ->exists();
 
             if ($sudahAbsen) {
-                Log::warning("User {$user->id} sudah absen $tipe hari ini");
-
                 return response()->json([
                     'success' => false,
                     'message' => "Anda sudah melakukan absen $tipe hari ini",
                 ], 400);
             }
 
-            // Upload foto jika ada
+            if ($tipe == 'pulang') {
+                $sudahMasuk = Absensi::where('user_id', $user->id)
+                    ->where('tipe_absen', 'masuk')
+                    ->whereDate('waktu_absen', now()->toDateString())
+                    ->exists();
+
+                if (! $sudahMasuk) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Anda harus absen masuk terlebih dahulu',
+                    ], 400);
+                }
+            }
+
+            $userParts = explode(',', $titikKoordinatKamu);
+            if (count($userParts) != 2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Format koordinat user tidak valid',
+                ], 422);
+            }
+
+            $userLat = floatval(trim($userParts[0]));
+            $userLng = floatval(trim($userParts[1]));
+
+            $lokasis = Lokasi::where('user_id', $user->id)->get();
+
+            if ($lokasis->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda belum memiliki lokasi absensi. Hubungi admin.',
+                ], 404);
+            }
+
+            $lokasiTerdekat = null;
+            $jarakTerdekat = PHP_FLOAT_MAX;
+            $lokasiDalamRadius = [];
+
+            foreach ($lokasis as $lokasi) {
+
+                $lokasiParts = explode(',', $lokasi->koordinat);
+                if (count($lokasiParts) != 2) {
+                    continue;
+                }
+
+                $lokasiLat = floatval(trim($lokasiParts[0]));
+                $lokasiLng = floatval(trim($lokasiParts[1]));
+
+                $jarak = $this->hitungJarak($userLat, $userLng, $lokasiLat, $lokasiLng);
+
+                Log::info("Jarak ke {$lokasi->lokasi}: {$jarak} meter");
+
+                $lokasiData = [
+                    'id' => $lokasi->id,
+                    'lokasi' => $lokasi->lokasi,
+                    'koordinat' => $lokasi->koordinat,
+                    'jarak' => round($jarak, 2),
+                    'dalam_radius' => $jarak <= 100,
+                ];
+
+                $lokasiDalamRadius[] = $lokasiData;
+
+                if ($jarak < $jarakTerdekat) {
+                    $jarakTerdekat = $jarak;
+                    $lokasiTerdekat = $lokasiData;
+                }
+            }
+
+            $lokasiDalamRadius = array_filter($lokasiDalamRadius, function ($item) {
+                return $item['dalam_radius'];
+            });
+
+            if (empty($lokasiDalamRadius)) {
+
+                Log::warning("Tidak ada lokasi dalam radius. Jarak terdekat: {$jarakTerdekat} meter");
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda berada di luar jangkauan absen',
+                    'data' => [
+                        'jarak_terdekat' => round($jarakTerdekat, 2),
+                        'batas_radius' => 100,
+                        'lokasi_terdekat' => $lokasiTerdekat,
+                    ],
+                ], 403);
+            }
+
+            $lokasiTerpilih = $lokasiTerdekat;
+
             $fotoUrl = null;
             if ($request->hasFile('foto_wajah')) {
                 $file = $request->file('foto_wajah');
 
-                // Validasi file
                 $validExtensions = ['jpg', 'jpeg', 'png'];
                 $extension = $file->getClientOriginalExtension();
 
@@ -161,47 +179,43 @@ class UserLokasiController extends Controller
                     ], 422);
                 }
 
-                // Generate nama file unik
                 $fileName = $tipe.'_'.time().'_'.$user->id.'.'.$extension;
 
-                // Simpan file
                 $path = $file->storeAs('public/foto_absensi', $fileName);
 
                 if ($path) {
-                    // Buat URL lengkap dengan base URL
                     $baseUrl = config('app.url');
                     $fotoUrl = $baseUrl.Storage::url($path);
-
                     Log::info('Foto tersimpan: '.$fotoUrl);
-                } else {
-                    Log::error('Gagal menyimpan foto');
                 }
             } else {
-                Log::warning('Tidak ada file foto yang dikirim');
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Foto wajah wajib diupload',
                 ], 422);
-            }       
+            }
 
-            // Simpan absensi
             DB::beginTransaction();
 
             try {
                 $absensi = new Absensi;
                 $absensi->user_id = $user->id;
-                $absensi->lokasi_id = $lokasiId;
-                $absensi->titik_koordinat_lokasi = $lokasi->koordinat;
+                $absensi->lokasi_id = $lokasiTerpilih['id'];
+                $absensi->titik_koordinat_lokasi = $lokasiTerpilih['koordinat'];
                 $absensi->titik_koordinat_kamu = $titikKoordinatKamu;
                 $absensi->foto_wajah = $fotoUrl;
                 $absensi->tipe_absen = $tipe;
                 $absensi->waktu_absen = now();
+                $absensi->jarak_absensi = $lokasiTerpilih['jarak'];
                 $absensi->save();
 
                 DB::commit();
 
-                Log::info('Absensi '.$tipe.' berhasil: ID='.$absensi->id);
+                Log::info('Absensi '.$tipe.' berhasil:', [
+                    'id' => $absensi->id,
+                    'lokasi' => $lokasiTerpilih['lokasi'],
+                    'jarak' => $lokasiTerpilih['jarak'].' meter',
+                ]);
 
                 return response()->json([
                     'success' => true,
@@ -210,9 +224,8 @@ class UserLokasiController extends Controller
                         'id' => $absensi->id,
                         'tipe_absen' => $absensi->tipe_absen,
                         'waktu_absen' => $absensi->waktu_absen->toDateTimeString(),
-                        'lokasi' => $lokasi->lokasi,
-                        'titik_koordinat_lokasi' => $absensi->titik_koordinat_lokasi,
-                        'titik_koordinat_kamu' => $absensi->titik_koordinat_kamu,
+                        'lokasi' => $lokasiTerpilih['lokasi'],
+                        'jarak' => $lokasiTerpilih['jarak'],
                         'foto_wajah' => $absensi->foto_wajah,
                     ],
                 ], 201);
@@ -220,51 +233,47 @@ class UserLokasiController extends Controller
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('Error saat menyimpan absensi: '.$e->getMessage());
-                Log::error('Stack trace: '.$e->getTraceAsString());
                 throw $e;
             }
 
         } catch (\Exception $e) {
-            Log::error('Error submitAbsensi: '.$e->getMessage());
-            Log::error('Stack trace: '.$e->getTraceAsString());
+            Log::error('Error submitAbsensiOtomatis: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal melakukan absensi: '.$e->getMessage(),
             ], 500);
-        } finally {
-            Log::info('='.str_repeat('=', 50));
         }
     }
 
     /**
-     * Riwayat absensi user yang login
+     * @param  float
+     * @param  float
+     * @param  float
+     * @param  float
+     * @return float Jarak dalam meter
      */
-    public function getRiwayatAbsensi(Request $request)
+
+    // rumus haversine
+    private function hitungJarak($lat1, $lon1, $lat2, $lon2)
     {
-        try {
-            $userId = $request->user()->id;
+        $earthRadius = 6371000;
 
-            $absensis = Absensi::where('user_id', $userId)
-                ->with('lokasi')
-                ->orderBy('waktu_absen', 'desc')
-                ->get();
+        $latFrom = deg2rad($lat1);
+        $lonFrom = deg2rad($lon1);
+        $latTo = deg2rad($lat2);
+        $lonTo = deg2rad($lon2);
 
-            return response()->json($absensis);
+        $latDelta = $latTo - $latFrom;
+        $lonDelta = $lonTo - $lonFrom;
 
-        } catch (\Exception $e) {
-            Log::error('Error getRiwayatAbsensi: '.$e->getMessage());
+        $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+            cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengambil riwayat absensi',
-            ], 500);
-        }
+        // angle menghitung antara 2 sudut bumi
+        return $angle * $earthRadius;
     }
 
-    /**
-     * Cek status absensi hari ini
-     */
     public function cekStatusHariIni(Request $request)
     {
         try {
@@ -297,6 +306,28 @@ class UserLokasiController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal cek status',
+            ], 500);
+        }
+    }
+
+    public function getRiwayatAbsensi(Request $request)
+    {
+        try {
+            $userId = $request->user()->id;
+
+            $absensis = Absensi::where('user_id', $userId)
+                ->with('lokasi')
+                ->orderBy('waktu_absen', 'desc')
+                ->get();
+
+            return response()->json($absensis);
+
+        } catch (\Exception $e) {
+            Log::error('Error getRiwayatAbsensi: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil riwayat absensi',
             ], 500);
         }
     }
