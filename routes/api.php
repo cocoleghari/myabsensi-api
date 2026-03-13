@@ -26,6 +26,8 @@ Route::middleware(['auth:sanctum', 'role:user'])->prefix('user')->group(function
     Route::post('/absensi/otomatis', [UserLokasiController::class, 'submitAbsensiOtomatis']);
     Route::get('/absensi/riwayat', [UserLokasiController::class, 'getRiwayatAbsensi']);
     Route::get('/absensi/cek-status', [UserLokasiController::class, 'cekStatusHariIni']);
+
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
 });
 
 // Admin Routes
@@ -44,6 +46,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::put('/pusat-lokasi/{id}', [PusatLokasiController::class, 'update']);
     Route::delete('/pusat-lokasi/{id}', [PusatLokasiController::class, 'destroy']);
     Route::delete('/pusat-lokasi', [PusatLokasiController::class, 'destroyMultiple']);
+
+    Route::post('/change-password', [AuthController::class, 'changePasswordAdmin']);
+
 });
 
 // Lokasi Routes

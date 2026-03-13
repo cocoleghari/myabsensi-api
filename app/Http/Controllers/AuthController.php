@@ -6,86 +6,14 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
     /**
-     * Register user baru
-     */
-    public function register(Request $request)
-    {
-        // Log untuk debugging
-        Log::info('='.str_repeat('=', 50));
-        Log::info('REGISTER ATTEMPT');
-        Log::info('Request data:', $request->all());
-        Log::info('Headers:', $request->headers->all());
-
-        try {
-            // Validasi input
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'email' => 'required|email|unique:users,email',
-                'password' => 'required|string|min:6',
-                'role' => 'required|in:admin,user',
-            ],
-                [
-                    //
-                ]
-            );
-
-            Log::info('Data tervalidasi:', $validated);
-
-            // Semua role (admin dan user) bisa register tanpa login
-            Log::info('Register diizinkan untuk role: '.$validated['role']);
-
-            // Buat user baru
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
-                'role' => $validated['role'],
-            ]);
-
-            Log::info('User registered successfully:', [
-                'id' => $user->id,
-                'email' => $user->email,
-                'role' => $user->role,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Register berhasil',
-                'data' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                ],
-            ], 201);
-
-        } catch (ValidationException $e) {
-            Log::warning('Validasi gagal:', $e->errors());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $e->errors(),
-            ], 422);
-
-        } catch (\Exception $e) {
-            Log::error('Register error: '.$e->getMessage());
-            Log::error('Stack trace: '.$e->getTraceAsString());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan server: '.$e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
      * Login user
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
     public function login(Request $request)
     {
@@ -94,16 +22,26 @@ class AuthController extends Controller
 
         try {
             // Validasi input
-            $validated = $request->validate([
+            $validator = Validator::make($request->all(), [
                 'email' => 'required|email',
                 'password' => 'required',
             ]);
 
+            if ($validator->fails()) {
+                Log::warning('Login validasi gagal:', $validator->errors()->toArray());
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
             // Cari user berdasarkan email
-            $user = User::where('email', $validated['email'])->first();
+            $user = User::where('email', $request->email)->first();
 
             if (! $user) {
-                Log::warning('Login failed: email not found', ['email' => $validated['email']]);
+                Log::warning('Login failed: email not found', ['email' => $request->email]);
 
                 return response()->json([
                     'success' => false,
@@ -112,8 +50,8 @@ class AuthController extends Controller
             }
 
             // Cek password
-            if (! Hash::check($validated['password'], $user->password)) {
-                Log::warning('Login failed: wrong password', ['email' => $validated['email']]);
+            if (! Hash::check($request->password, $user->password)) {
+                Log::warning('Login failed: wrong password', ['email' => $request->email]);
 
                 return response()->json([
                     'success' => false,
@@ -141,15 +79,6 @@ class AuthController extends Controller
                 ],
             ]);
 
-        } catch (ValidationException $e) {
-            Log::warning('Login validasi gagal:', $e->errors());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $e->errors(),
-            ], 422);
-
         } catch (\Exception $e) {
             Log::error('Login error: '.$e->getMessage());
 
@@ -162,6 +91,8 @@ class AuthController extends Controller
 
     /**
      * Logout user
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
     public function logout(Request $request)
     {
@@ -188,6 +119,8 @@ class AuthController extends Controller
 
     /**
      * Get all users (admin only)
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
     public function getUsers(Request $request)
     {
@@ -222,6 +155,9 @@ class AuthController extends Controller
 
     /**
      * Delete user (admin only)
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function deleteUser($id)
     {
@@ -235,7 +171,20 @@ class AuthController extends Controller
                 ], 404);
             }
 
-            // Cegah hapus diri sendiri
+            // CEK APAKAH INI ADMIN PATEN (SUPER ADMIN)
+            if ($user->email === 'superadmin@absensi.com') {
+                Log::warning('Attempt to delete super admin:', [
+                    'admin_id' => auth()->id(),
+                    'target_email' => $user->email,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Super Admin tidak dapat dihapus',
+                ], 403);
+            }
+
+            // Cegah admin menghapus diri sendiri
             if (auth()->id() == $user->id) {
                 return response()->json([
                     'success' => false,
@@ -243,9 +192,10 @@ class AuthController extends Controller
                 ], 403);
             }
 
+            // Hapus user
             $user->delete();
 
-            Log::info('User deleted:', ['id' => $id]);
+            Log::info('User deleted:', ['id' => $id, 'deleted_by' => auth()->id()]);
 
             return response()->json([
                 'success' => true,
@@ -260,5 +210,128 @@ class AuthController extends Controller
                 'message' => 'Gagal menghapus user',
             ], 500);
         }
+    }
+
+    /**
+     * Ganti password untuk USER biasa
+     * (hanya bisa diakses oleh role 'user')
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function changePassword(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            // Validasi input
+            $validator = Validator::make($request->all(), [
+                'current_password' => 'required|string',
+                'new_password' => 'required|string|min:6|different:current_password',
+                'confirm_password' => 'required|string|same:new_password',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            // Cek password lama
+            if (! Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Password saat ini tidak sesuai',
+                ], 400);
+            }
+
+            // Update password
+            $user->password = Hash::make($request->new_password);
+            $user->save();
+
+            Log::info('Password changed for user: '.$user->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password berhasil diubah',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error change password: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengubah password',
+            ], 500);
+        }
+    }
+
+    /**
+     * Ganti password untuk ADMIN
+     * (hanya bisa diakses oleh role 'admin')
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function changePasswordAdmin(Request $request)
+    {
+        try {
+            $admin = $request->user();
+
+            // Validasi input
+            $validator = Validator::make($request->all(), [
+                'current_password' => 'required|string',
+                'new_password' => 'required|string|min:6|different:current_password',
+                'confirm_password' => 'required|string|same:new_password',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            // Cek password lama
+            if (! Hash::check($request->current_password, $admin->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Password saat ini tidak sesuai',
+                ], 400);
+            }
+
+            // Update password
+            $admin->password = Hash::make($request->new_password);
+            $admin->save();
+
+            Log::info('Password changed for admin: '.$admin->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password admin berhasil diubah',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error change password admin: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengubah password admin',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get user profile (untuk testing)
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function profile(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $request->user(),
+        ]);
     }
 }
