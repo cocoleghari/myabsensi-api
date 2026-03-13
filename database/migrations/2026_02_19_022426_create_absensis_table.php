@@ -1,4 +1,5 @@
 <?php
+
 // database/migrations/2026_02_19_022426_create_absensis_table.php
 
 use Illuminate\Database\Migrations\Migration;
@@ -16,16 +17,16 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('lokasi_id')->constrained()->onDelete('cascade');
-            $table->string('titik_koordinat_lokasi'); // Koordinat dari lokasi yang dipilih
-            $table->string('titik_koordinat_kamu')->nullable(); // Koordinat real-time pengguna
-            $table->string('foto_wajah')->nullable(); // Foto wajah sebagai bukti absen
-            $table->enum('tipe_absen', ['masuk', 'pulang'])->default('masuk'); // Tipe absen: masuk atau pulang
+            $table->string('titik_koordinat_lokasi');
+            $table->string('titik_koordinat_kamu')->nullable();
+            $table->string('foto_wajah')->nullable();
+            $table->enum('tipe_absen', ['masuk', 'pulang'])->default('masuk');
             $table->timestamp('waktu_absen');
             $table->timestamps();
-            
+
             // Index untuk performa query
             $table->index(['user_id', 'waktu_absen']);
-            $table->index(['user_id', 'tipe_absen', 'waktu_absen']); // Index untuk filter tipe absen
+            $table->index(['user_id', 'tipe_absen', 'waktu_absen']);
         });
     }
 

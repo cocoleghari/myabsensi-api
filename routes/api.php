@@ -46,7 +46,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::delete('/pusat-lokasi', [PusatLokasiController::class, 'destroyMultiple']);
 });
 
-// Lokasi Routes (Admin)
+// Lokasi Routes
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/lokasi', [LokasiController::class, 'index']);
     Route::post('/lokasi', [LokasiController::class, 'store']);

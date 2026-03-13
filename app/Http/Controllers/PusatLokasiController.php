@@ -268,7 +268,6 @@ class PusatLokasiController extends Controller
             }
 
             // TODO: Jika ada relasi dengan tabel lain, cek di sini
-            // Contoh: cek apakah lokasi ini sedang digunakan oleh user
 
             $pusatLokasi->delete();
 
@@ -332,84 +331,3 @@ class PusatLokasiController extends Controller
         }
     }
 }
-
-// namespace App\Http\Controllers;
-
-// use App\Models\PusatLokasi;
-// use Illuminate\Http\Request;
-
-// class PusatLokasiController extends Controller
-// {
-//     public function index()
-//     {
-//         $data = PusatLokasi::all();
-
-//         return response()->json([
-//             'success' => true,
-//             'data' => $data,
-//         ]);
-//     }
-
-//     public function store(Request $request)
-//     {
-//         $pusatLokasi = PusatLokasi::create([
-//             'nama_lokasi' => $request->nama_lokasi,
-//             'titik_kordinat' => $request->titik_kordinat,
-//             'keterangan' => $request->keterangan,
-//         ]);
-
-//         return response()->json([
-//             'success' => true,
-//             'message' => 'Data berhasil ditambahkan',
-//             'data' => $pusatLokasi,
-//         ]);
-//     }
-
-//     public function show($id)
-//     {
-//         $pusatLokasi = PusatLokasi::find($id);
-
-//         return response()->json([
-//             'success' => true,
-//             'data' => $pusatLokasi,
-//         ]);
-//     }
-
-//     public function update(Request $request, $id)
-//     {
-//         $pusatLokasi = PusatLokasi::find($id);
-
-//         $pusatLokasi->update([
-//             'nama_lokasi' => $request->nama_lokasi,
-//             'titik_kordinat' => $request->titik_kordinat,
-//             'keterangan' => $request->keterangan,
-//         ]);
-
-//         return response()->json([
-//             'success' => true,
-//             'message' => 'Data berhasil diupdate',
-//             'data' => $pusatLokasi,
-//         ]);
-//     }
-
-//     public function destroy($id)
-//     {
-//         $pusatLokasi = PusatLokasi::find($id);
-//         $pusatLokasi->delete();
-
-//         return response()->json([
-//             'success' => true,
-//             'message' => 'Data berhasil dihapus',
-//         ]);
-//     }
-
-//     public function destroyMultiple(Request $request)
-//     {
-//         PusatLokasi::whereIn('id', $request->ids)->delete();
-
-//         return response()->json([
-//             'success' => true,
-//             'message' => 'Data berhasil dihapus',
-//         ]);
-//     }
-// }
