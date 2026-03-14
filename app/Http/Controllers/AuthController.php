@@ -10,11 +10,6 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    /**
-     * Login user
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function login(Request $request)
     {
         Log::info('='.str_repeat('=', 50));
@@ -37,7 +32,6 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // Cari user berdasarkan email
             $user = User::where('email', $request->email)->first();
 
             if (! $user) {
@@ -49,7 +43,6 @@ class AuthController extends Controller
                 ], 404);
             }
 
-            // Cek password
             if (! Hash::check($request->password, $user->password)) {
                 Log::warning('Login failed: wrong password', ['email' => $request->email]);
 
@@ -59,10 +52,8 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            // Hapus token lama
             $user->tokens()->delete();
 
-            // Buat token baru
             $token = $user->createToken('auth_token')->plainTextToken;
 
             Log::info('Login successful:', ['user_id' => $user->id, 'role' => $user->role]);
@@ -89,15 +80,9 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Logout user
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function logout(Request $request)
     {
         try {
-            // Hapus semua token user
             $request->user()->tokens()->delete();
 
             Log::info('User logged out successfully:', ['user_id' => $request->user()->id]);
@@ -117,15 +102,9 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Get all users (admin only)
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function getUsers(Request $request)
     {
         try {
-            // Cek apakah user adalah admin
             if ($request->user()->role !== 'admin') {
                 return response()->json([
                     'success' => false,
@@ -133,7 +112,6 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            // Ambil semua users
             $users = User::select('id', 'name', 'email', 'role')
                 ->orderBy('name')
                 ->get();
@@ -153,12 +131,6 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Delete user (admin only)
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function deleteUser($id)
     {
         try {
@@ -171,7 +143,6 @@ class AuthController extends Controller
                 ], 404);
             }
 
-            // CEK APAKAH INI ADMIN PATEN (SUPER ADMIN)
             if ($user->email === 'superadmin@absensi.com') {
                 Log::warning('Attempt to delete super admin:', [
                     'admin_id' => auth()->id(),
@@ -184,7 +155,6 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            // Cegah admin menghapus diri sendiri
             if (auth()->id() == $user->id) {
                 return response()->json([
                     'success' => false,
@@ -192,7 +162,6 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            // Hapus user
             $user->delete();
 
             Log::info('User deleted:', ['id' => $id, 'deleted_by' => auth()->id()]);
@@ -212,12 +181,6 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Ganti password untuk USER biasa
-     * (hanya bisa diakses oleh role 'user')
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function changePassword(Request $request)
     {
         try {
@@ -238,7 +201,6 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // Cek password lama
             if (! Hash::check($request->current_password, $user->password)) {
                 return response()->json([
                     'success' => false,
@@ -246,7 +208,6 @@ class AuthController extends Controller
                 ], 400);
             }
 
-            // Update password
             $user->password = Hash::make($request->new_password);
             $user->save();
 
@@ -267,18 +228,11 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Ganti password untuk ADMIN
-     * (hanya bisa diakses oleh role 'admin')
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function changePasswordAdmin(Request $request)
     {
         try {
             $admin = $request->user();
 
-            // Validasi input
             $validator = Validator::make($request->all(), [
                 'current_password' => 'required|string',
                 'new_password' => 'required|string|min:6|different:current_password',
@@ -293,7 +247,6 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // Cek password lama
             if (! Hash::check($request->current_password, $admin->password)) {
                 return response()->json([
                     'success' => false,
@@ -301,7 +254,6 @@ class AuthController extends Controller
                 ], 400);
             }
 
-            // Update password
             $admin->password = Hash::make($request->new_password);
             $admin->save();
 
@@ -322,11 +274,6 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Get user profile (untuk testing)
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function profile(Request $request)
     {
         return response()->json([

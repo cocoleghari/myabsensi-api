@@ -86,7 +86,6 @@ class PusatLokasiController extends Controller
                 ], 422);
             }
 
-            // Validasi format koordinat
             $kordinat = $request->titik_kordinat;
             $parts = explode(',', $kordinat);
 
@@ -111,7 +110,6 @@ class PusatLokasiController extends Controller
                 ], 422);
             }
 
-            // Simpan data
             $pusatLokasi = PusatLokasi::create([
                 'nama_lokasi' => $request->nama_lokasi,
                 'titik_kordinat' => $kordinat,
@@ -190,7 +188,6 @@ class PusatLokasiController extends Controller
                 ], 404);
             }
 
-            // Validasi input
             $validator = Validator::make($request->all(), [
                 'nama_lokasi' => 'sometimes|required|string|max:255',
                 'titik_kordinat' => 'sometimes|required|string|max:100',
@@ -207,7 +204,6 @@ class PusatLokasiController extends Controller
                 ], 422);
             }
 
-            // Validasi format koordinat jika diupdate
             if ($request->has('titik_kordinat')) {
                 $kordinat = $request->titik_kordinat;
                 $parts = explode(',', $kordinat);
@@ -230,7 +226,6 @@ class PusatLokasiController extends Controller
                 }
             }
 
-            // Update data
             $pusatLokasi->update($request->only(['nama_lokasi', 'titik_kordinat', 'keterangan']));
 
             Log::info('Pusat lokasi updated', ['id' => $pusatLokasi->id]);
@@ -266,8 +261,6 @@ class PusatLokasiController extends Controller
                     'message' => 'Data pusat lokasi tidak ditemukan',
                 ], 404);
             }
-
-            // TODO: Jika ada relasi dengan tabel lain, cek di sini
 
             $pusatLokasi->delete();
 

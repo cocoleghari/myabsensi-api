@@ -10,10 +10,6 @@ use Illuminate\Support\Facades\Validator;
 
 class LokasiController extends Controller
 {
-    /**
-     * GET /api/lokasi
-     * Mengambil semua data lokasi dengan relasi user
-     */
     public function index()
     {
         try {
@@ -33,10 +29,6 @@ class LokasiController extends Controller
         }
     }
 
-    /**
-     * POST /api/lokasi
-     * Menyimpan lokasi baru dengan validasi duplikat koordinat
-     */
     public function store(Request $request)
     {
         try {
@@ -44,7 +36,6 @@ class LokasiController extends Controller
             Log::info('STORE LOKASI - START');
             Log::info('Request data:', $request->all());
 
-            // Validasi input
             $validator = Validator::make($request->all(), [
                 'user_id' => 'required|exists:users,id',
                 'lokasi' => 'required|string|max:255',
@@ -61,7 +52,6 @@ class LokasiController extends Controller
                 ], 422);
             }
 
-            // CEK DUPLIKAT TITIK KOORDINAT UNTUK USER YANG SAMA
             $existingLokasi = Lokasi::where('user_id', $request->user_id)
                 ->where('koordinat', $request->koordinat)
                 ->first();
@@ -83,10 +73,9 @@ class LokasiController extends Controller
                         'koordinat' => $existingLokasi->koordinat,
                         'created_at' => $existingLokasi->created_at,
                     ],
-                ], 422); // 422 Unprocessable Entity
+                ], 422);
             }
 
-            // Simpan lokasi baru
             $lokasi = Lokasi::create([
                 'user_id' => $request->user_id,
                 'lokasi' => $request->lokasi,
@@ -124,7 +113,6 @@ class LokasiController extends Controller
 
             $lokasi = Lokasi::findOrFail($id);
 
-            // Validasi input
             $validator = Validator::make($request->all(), [
                 'user_id' => 'sometimes|exists:users,id',
                 'lokasi' => 'sometimes|string|max:255',
@@ -139,7 +127,6 @@ class LokasiController extends Controller
                 ], 422);
             }
 
-            // Jika koordinat diupdate, cek duplikat
             if ($request->has('koordinat') && $request->koordinat != $lokasi->koordinat) {
                 $userId = $request->get('user_id', $lokasi->user_id);
 
@@ -161,7 +148,6 @@ class LokasiController extends Controller
                 }
             }
 
-            // Update data
             $lokasi->update($request->all());
 
             Log::info('Lokasi updated:', ['id' => $id]);
