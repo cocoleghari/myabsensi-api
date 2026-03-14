@@ -10,6 +10,70 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    public function register(Request $request)
+    {
+        // Log untuk debugging
+        Log::info('='.str_repeat('=', 50));
+        Log::info('REGISTER ATTEMPT (oleh admin)');
+        Log::info('Request data:', $request->all());
+        Log::info('Headers:', $request->headers->all());
+
+        try {
+            // Validasi input
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'password' => 'required|string|min:6',
+                'role' => 'required|in:admin,user',
+            ]);
+
+            if ($validator->fails()) {
+                Log::warning('Validasi gagal:', $validator->errors()->toArray());
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            // Buat user baru
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => $request->role,
+            ]);
+
+            Log::info('User registered successfully by admin:', [
+                'id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'created_by' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Register berhasil',
+                'data' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                ],
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Register error: '.$e->getMessage());
+            Log::error('Stack trace: '.$e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan server: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function login(Request $request)
     {
         Log::info('='.str_repeat('=', 50));
