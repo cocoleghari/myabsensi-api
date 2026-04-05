@@ -28,6 +28,25 @@ Route::middleware(['auth:sanctum', 'role:user'])->prefix('user')->group(function
     Route::get('/absensi/cek-status', [UserLokasiController::class, 'cekStatusHariIni']);
 
     Route::post('/change-password', [AuthController::class, 'changePassword']);
+
+    Route::post('/wajah/daftarkan', [UserLokasiController::class, 'daftarkanWajah']);
+    // Verifikasi wajah saja (tanpa simpan absensi)
+    Route::post('/wajah/verifikasi', [UserLokasiController::class, 'verifikasiWajahSaja']);
+    // Tambah foto_wajah_url ke response profil
+    Route::get('/profil', function (Request $request) {
+        $user = $request->user();
+
+        $fotoUrl = null;
+        if ($user->foto_wajah_path) {
+            // Pastikan menggunakan public disk
+            $fotoUrl = Storage::disk('public')->url($user->foto_wajah_path);
+        }
+
+        return response()->json([
+            ...$user->toArray(),
+            'foto_wajah_url' => $fotoUrl,
+        ]);
+    });
 });
 
 // Admin Routes

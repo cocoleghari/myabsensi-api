@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\LeaveRequest; // pastikan import model leave request
+
+// pastikan import model leave request
 
 class User extends Authenticatable
 {
@@ -19,7 +20,7 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-         'name', 'email', 'password', 'role'
+        'name', 'email', 'password', 'role', 'foto_wajah_path', 'wajah_terdaftar',
     ];
 
     /**
@@ -39,8 +40,6 @@ class User extends Authenticatable
     // protected $casts = [
     //     'email_verified_at' => 'datetime',
     // ];
-
-
 
     // Relasi ke leaveRequests
     // public function leaveRequests()

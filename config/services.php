@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'face_recognition' => [
+        'url' => env('FACE_RECOGNITION_URL', 'http://localhost:8001'),
+        'threshold' => env('FACE_RECOGNITION_THRESHOLD', 0.6),
+    ],
+
 ];
