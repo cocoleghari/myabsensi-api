@@ -25,6 +25,17 @@ class AuthController extends Controller
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|string|min:6',
                 'role' => 'required|in:admin,user',
+
+                // tambahan
+                'nik' => 'nullable|string|max:50',
+                'nama_stempel' => 'nullable|string|max:255',
+                'tgl_lahir' => 'nullable|date',
+                'jk' => 'nullable|in:L,P',
+                'alamat' => 'nullable|string',
+                'jabatan' => 'nullable|string',
+                'kantor' => 'nullable|string',
+                'tgl_masuk' => 'nullable|date',
+                'nomor_telp' => 'nullable|string|max:20',
             ]);
 
             if ($validator->fails()) {
@@ -43,12 +54,30 @@ class AuthController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'role' => $request->role,
+                'nik' => $request->nik,
+                'nama_stempel' => $request->nama_stempel,
+                'tgl_lahir' => $request->tgl_lahir,
+                'jk' => $request->jk,
+                'alamat' => $request->alamat,
+                'jabatan' => $request->jabatan,
+                'kantor' => $request->kantor,
+                'tgl_masuk' => $request->tgl_masuk,
+                'nomor_telp' => $request->nomor_telp,
             ]);
 
             Log::info('User registered successfully by admin:', [
                 'id' => $user->id,
                 'email' => $user->email,
                 'role' => $user->role,
+                'nik' => $user->nik,
+                'nama_stempel' => $user->nama_stempel,
+                'tgl_lahir' => $user->tgl_lahir,
+                'jk' => $user->jk,
+                'alamat' => $user->alamat,
+                'jabatan' => $user->jabatan,
+                'kantor' => $user->kantor,
+                'tgl_masuk' => $user->tgl_masuk,
+                'nomor_telp' => $user->nomor_telp,
                 'created_by' => auth()->id(),
             ]);
 
@@ -60,6 +89,15 @@ class AuthController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
+                    'nik' => $user->nik,
+                    'nama_stempel' => $user->nama_stempel,
+                    'tgl_lahir' => $user->tgl_lahir,
+                    'jk' => $user->jk,
+                    'alamat' => $user->alamat,
+                    'jabatan' => $user->jabatan,
+                    'kantor' => $user->kantor,
+                    'tgl_masuk' => $user->tgl_masuk,
+                    'nomor_telp' => $user->nomor_telp,
                 ],
             ], 201);
 
@@ -131,6 +169,15 @@ class AuthController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
+                    'nik' => $user->nik,
+                    'nama_stempel' => $user->nama_stempel,
+                    'tgl_lahir' => $user->tgl_lahir,
+                    'jk' => $user->jk,
+                    'alamat' => $user->alamat,
+                    'jabatan' => $user->jabatan,
+                    'kantor' => $user->kantor,
+                    'tgl_masuk' => $user->tgl_masuk,
+                    'nomor_telp' => $user->nomor_telp,
                 ],
             ]);
 
@@ -176,7 +223,7 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            $users = User::select('id', 'name', 'email', 'role')
+            $users = User::select('id', 'name', 'email', 'role', 'nik', 'nama_stempel', 'tgl_lahir', 'jk', 'alamat', 'jabatan', 'kantor', 'tgl_masuk', 'nomor_telp')
                 ->orderBy('name')
                 ->get();
 

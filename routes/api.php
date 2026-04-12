@@ -1,9 +1,13 @@
 <?php
 
 use App\Http\Controllers\AdminAbsensiController;
+use App\Http\Controllers\AktivitasController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LokasiController;
+use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\PusatLokasiController;
+use App\Http\Controllers\TipeAktivitasController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserLokasiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -45,8 +49,29 @@ Route::middleware(['auth:sanctum', 'role:user'])->prefix('user')->group(function
         return response()->json([
             ...$user->toArray(),
             'foto_wajah_url' => $fotoUrl,
+            'photo_url' => $user->photo_url,
         ]);
     });
+
+    // Foto profil
+    Route::post('/upload-foto', [ProfilePhotoController::class, 'upload']);
+    Route::delete('/hapus-foto', [ProfilePhotoController::class, 'destroy']);
+
+    // Aktivitas
+    Route::get('aktivitas', [AktivitasController::class, 'index']);
+    Route::post('aktivitas', [AktivitasController::class, 'store']);
+    Route::get('aktivitas/{id}', [AktivitasController::class, 'show']);
+    Route::post('aktivitas/{id}', [AktivitasController::class, 'update']); // POST karena multipart
+    Route::delete('aktivitas/{id}', [AktivitasController::class, 'destroy']);
+
+    // Tipe Aktivitas
+    Route::get('/tipe-aktivitas', [TipeAktivitasController::class, 'index']);
+
+    // List Karyawan
+    Route::get('/karyawan', [UserController::class, 'index']);
+    Route::get('/jabatan-list', [UserController::class, 'jabatanList']);
+    Route::get('/kantor-list', [UserController::class, 'kantorList']);
+    Route::get('/karyawan/{id}', [UserController::class, 'show']);
 });
 
 // Admin Routes
@@ -66,7 +91,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::delete('/pusat-lokasi/{id}', [PusatLokasiController::class, 'destroy']);
     Route::delete('/pusat-lokasi', [PusatLokasiController::class, 'destroyMultiple']);
 
+    // Ubah Password
     Route::post('/change-password', [AuthController::class, 'changePasswordAdmin']);
+
+    // Tipe Aktivitas
+    Route::post('/tipe-aktivitas', [TipeAktivitasController::class, 'store']);
+    Route::put('/tipe-aktivitas/{id}', [TipeAktivitasController::class, 'update']);
+    Route::delete('/tipe-aktivitas/{id}', [TipeAktivitasController::class, 'destroy']);
 
 });
 
@@ -78,4 +109,5 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::delete('/lokasi/{id}', [LokasiController::class, 'destroy']);
     Route::get('/lokasi/users', [LokasiController::class, 'users']);
     Route::get('/lokasi/cek-duplikat', [LokasiController::class, 'cekDuplikat']);
+
 });

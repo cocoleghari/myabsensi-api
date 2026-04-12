@@ -184,7 +184,15 @@ class UserLokasiController extends Controller
                 ], 422);
             }
 
-            $namaFileSementara = "temp_{$tipe}_{$user->id}_".time().".{$extension}";
+            // Nama file dari nama_stempel
+            $namaStempel = $user->nama_stempel ?? $user->name ?? 'user';
+            $namaFile = strtolower($namaStempel);
+            $namaFile = preg_replace('/\s+/', '_', $namaFile);
+            $namaFile = preg_replace('/[^a-z0-9_]/', '', $namaFile);
+            $namaFile = trim($namaFile, '_');
+            $namaFile = $namaFile ?: 'user_'.$user->id;
+
+            $namaFileSementara = "temp_{$tipe}_{$namaFile}_".time().".{$extension}";
             $pathSementara = $file->storeAs('foto_absensi_temp', $namaFileSementara, 'local');
 
             // ── 7. Face recognition ──────────────────────────────────
@@ -214,8 +222,8 @@ class UserLokasiController extends Controller
                 ], 403);
             }
 
-            // ── 8. Pindahkan foto ke folder permanen ─────────────────
-            $namaFilePermanent = "{$tipe}_{$user->id}_".time().".{$extension}";
+            // / ── 8. Pindahkan foto ke folder permanen ─────────────────
+            $namaFilePermanent = "{$tipe}_{$namaFile}_".time().".{$extension}";
             $pathPermanent = "public/foto_absensi/{$namaFilePermanent}";
 
             Storage::move($pathSementara, $pathPermanent);
@@ -289,14 +297,23 @@ class UserLokasiController extends Controller
         try {
             $user = $request->user();
             $file = $request->file('foto_wajah');
-            $fileName = "wajah_user_{$user->id}.jpg";
 
             // Hapus foto lama jika ada
             if ($user->foto_wajah_path) {
                 Storage::disk('public')->delete($user->foto_wajah_path);
             }
 
-            // Simpan ke public disk — path yang disimpan: "wajah_referensi/wajah_user_2.jpg"
+            // Buat nama file dari nama_stempel
+            $namaStempel = $user->nama_stempel ?? $user->name ?? 'user';
+
+            $namaFile = strtolower($namaStempel);
+            $namaFile = preg_replace('/\s+/', '_', $namaFile);
+            $namaFile = preg_replace('/[^a-z0-9_]/', '', $namaFile);
+            $namaFile = trim($namaFile, '_');
+            $namaFile = $namaFile ?: 'user_'.$user->id;
+
+            $fileName = 'wajah_'.$namaFile.'.jpg';  // tanpa timestamp — 1 user 1 file referensi
+
             $path = $file->storeAs('wajah_referensi', $fileName, 'public');
 
             $user->update([
@@ -304,7 +321,6 @@ class UserLokasiController extends Controller
                 'wajah_terdaftar' => true,
             ]);
 
-            // URL yang dihasilkan: http://192.168.1.5:8000/storage/wajah_referensi/wajah_user_2.jpg
             $url = Storage::disk('public')->url($path);
 
             Log::info("Wajah terdaftar - User: {$user->id}, Path: {$path}, URL: {$url}");
@@ -416,9 +432,17 @@ class UserLokasiController extends Controller
             ]);
         }
 
+        // Nama file dari nama_stempel
+        $namaStempel = $user->nama_stempel ?? $user->name ?? 'user';
+        $namaFile = strtolower($namaStempel);
+        $namaFile = preg_replace('/\s+/', '_', $namaFile);
+        $namaFile = preg_replace('/[^a-z0-9_]/', '', $namaFile);
+        $namaFile = trim($namaFile, '_');
+        $namaFile = $namaFile ?: 'user_'.$user->id;
+
         // Simpan foto absen sementara di local disk
         $pathTemp = $request->file('foto_wajah')
-            ->storeAs('foto_absensi_temp', "verify_{$user->id}_".time().'.jpg', 'local');
+            ->storeAs('foto_absensi_temp', "verify_{$namaFile}_".time().'.jpg', 'local');
 
         // Path absolut foto referensi dari public disk
         $pathReferensi = Storage::disk('public')->path($user->foto_wajah_path);
