@@ -178,6 +178,7 @@ class AuthController extends Controller
                     'kantor' => $user->kantor,
                     'tgl_masuk' => $user->tgl_masuk,
                     'nomor_telp' => $user->nomor_telp,
+                    'photo_url' => $user->photo_url,
                 ],
             ]);
 
