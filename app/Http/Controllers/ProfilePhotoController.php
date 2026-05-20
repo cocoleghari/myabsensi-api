@@ -15,42 +15,46 @@ class ProfilePhotoController extends Controller
         ]);
 
         $user = $request->user();
+        $employee = $user->employee;
+
+        if (! $employee) {
+            return response()->json([
+                'message' => 'Data karyawan tidak ditemukan',
+            ], 404);
+        }
 
         // Hapus foto lama jika ada
-        if ($user->photo_url) {
+        if ($employee->photo_url) {
             $oldPath = str_replace(
                 Storage::disk('public')->url(''),
                 '',
-                $user->photo_url
+                $employee->photo_url
             );
             if (Storage::disk('public')->exists($oldPath)) {
                 Storage::disk('public')->delete($oldPath);
             }
         }
 
-        // Buat nama file dari nama_stempel
-        $namaStempel = $user->nama_stempel ?? $user->name ?? 'user';
-
-        // Sanitasi: huruf kecil, spasi → underscore, hapus karakter aneh
+        // Nama file dari nickname/full_name karyawan
+        $namaStempel = $employee->nickname ?? $employee->full_name ?? 'user';
         $namaFile = strtolower($namaStempel);
-        $namaFile = preg_replace('/\s+/', '_', $namaFile);          // spasi → _
-        $namaFile = preg_replace('/[^a-z0-9_]/', '', $namaFile);    // hapus karakter selain huruf, angka, _
-        $namaFile = trim($namaFile, '_');                            // hapus _ di awal/akhir
-        $namaFile = $namaFile ?: 'user_'.$user->id;               // fallback jika kosong
-
-        // Tambah timestamp agar unik jika upload ulang
+        $namaFile = preg_replace('/\s+/', '_', $namaFile);
+        $namaFile = preg_replace('/[^a-z0-9_]/', '', $namaFile);
+        $namaFile = trim($namaFile, '_');
+        $namaFile = $namaFile ?: 'emp_'.$employee->id;
         $namaFile = $namaFile.'_'.time().'.jpg';
 
         $path = 'photos/profile/'.$namaFile;
 
-        // Simpan dengan nama custom
         Storage::disk('public')->put(
             $path,
             file_get_contents($request->file('photo')->getRealPath())
         );
 
         $url = Storage::disk('public')->url($path);
-        $user->update(['photo_url' => $url]);
+
+        // Simpan ke employees, bukan users
+        $employee->update(['photo_url' => $url]);
 
         return response()->json([
             'message' => 'Foto profil berhasil diperbarui',
@@ -58,15 +62,15 @@ class ProfilePhotoController extends Controller
         ]);
     }
 
-    // Hapus foto
     public function destroy(Request $request)
     {
         $user = $request->user();
+        $employee = $user->employee;
 
-        if ($user->photo_url) {
-            $oldPath = str_replace('/storage/', 'public/', parse_url($user->photo_url, PHP_URL_PATH));
+        if ($employee?->photo_url) {
+            $oldPath = str_replace('/storage/', 'public/', parse_url($employee->photo_url, PHP_URL_PATH));
             Storage::delete($oldPath);
-            $user->update(['photo_url' => null]);
+            $employee->update(['photo_url' => null]);
         }
 
         return response()->json([

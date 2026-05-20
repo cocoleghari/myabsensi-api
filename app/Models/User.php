@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -12,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -24,18 +26,9 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'foto_wajah_path',
-        'wajah_terdaftar',
-        'nik',
-        'nama_stempel',
-        'tgl_lahir',
-        'jk',
-        'alamat',
-        'jabatan',
-        'kantor',
-        'tgl_masuk',
-        'nomor_telp',
-        'photo_url',
+        'is_active',
+        'fcm_token',
+        'company_id',
     ];
 
     /**
@@ -45,6 +38,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'remember_token',
     ];
 
     /**
@@ -54,11 +48,67 @@ class User extends Authenticatable
      */
     // protected $casts = [
     //     'email_verified_at' => 'datetime',
+    //     'password'          => 'hashed',
+    //     'is_active'         => 'boolean',
     // ];
 
-    // Relasi ke leaveRequests
-    // public function leaveRequests()
-    // {
-    //     return $this->hasMany(LeaveRequest::class);
-    // }
+    // Relations
+    // -------------------------------------------------------------------------
+
+    /**
+     * Profil kepegawaian milik user ini.
+     */
+    public function employee(): HasOne
+    {
+        return $this->hasOne(Employee::class);
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'superadmin';
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isHrd(): bool
+    {
+        return $this->role === 'hrd';
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
+    public function isSupervisor(): bool
+    {
+        return $this->role === 'supervisor';
+    }
+
+    public function isEmployee(): bool
+    {
+        return $this->role === 'employee';
+    }
+
+    /**
+     * Cek apakah user memiliki salah satu role yang diberikan.
+     *
+     * Contoh: $user->hasRole(['admin', 'hrd'])
+     */
+    public function hasRole(array|string $roles): bool
+    {
+        return in_array($this->role, (array) $roles);
+    }
+
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Company::class);
+    }
 }

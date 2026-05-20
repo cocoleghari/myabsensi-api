@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Aktivitas extends Model
 {
@@ -12,7 +14,7 @@ class Aktivitas extends Model
     protected $table = 'aktivitas';
 
     protected $fillable = [
-        'user_id',
+        'employee_id',
         'tugas',
         'mulai',
         'berakhir',
@@ -32,18 +34,27 @@ class Aktivitas extends Model
         'akurasi_meter' => 'float',
     ];
 
-    public function user()
+    // -------------------------------------------------------------------------
+    // Relations
+    // -------------------------------------------------------------------------
+
+    /**
+     * Aktivitas dimiliki oleh Employee (bukan User langsung).
+     * Foreign key di migrasi adalah employee_id → constrained('users'),
+     * namun secara domain sebaiknya mengacu ke Employee.
+     * Sesuaikan jika migrasi diubah ke constrained('employees').
+     */
+    public function employee(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Employee::class);
     }
 
-    public function fotos()
+    public function fotos(): HasMany
     {
         return $this->hasMany(AktivitasFoto::class)->orderBy('urutan');
     }
 
-    // Tambahkan relasi
-    public function tipeAktivitas()
+    public function tipeAktivitas(): BelongsTo
     {
         return $this->belongsTo(TipeAktivitas::class, 'tipe_aktivitas_id');
     }

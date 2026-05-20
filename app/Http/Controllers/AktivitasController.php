@@ -13,21 +13,22 @@ use Illuminate\Support\Facades\Storage;
 
 class AktivitasController extends Controller
 {
-    // GET /user/aktivitas?tanggal=2026-04-10
+    // =========================================================================
+    // INDEX — GET /user/aktivitas?tanggal=2026-04-10
+    // =========================================================================
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $employee = $this->getEmployee($request);
 
         $query = Aktivitas::with(['fotos', 'tipeAktivitas'])
-            ->where('user_id', $user->id)
+            ->where('employee_id', $employee->id)
             ->orderBy('mulai', 'desc');
 
-        // Filter by tanggal jika ada
         if ($request->filled('tanggal')) {
             $query->whereDate('mulai', $request->tanggal);
         }
 
-        // Filter by bulan & tahun jika ada
         if ($request->filled('bulan') && $request->filled('tahun')) {
             $query->whereMonth('mulai', $request->bulan)
                 ->whereYear('mulai', $request->tahun);
@@ -42,13 +43,18 @@ class AktivitasController extends Controller
         ]);
     }
 
-    // POST /user/aktivitas
+    // =========================================================================
+    // STORE — POST /user/aktivitas
+    // =========================================================================
+
     public function store(StoreAktivitasRequest $request): JsonResponse
     {
+        $employee = $this->getEmployee($request);
+
         DB::beginTransaction();
         try {
             $aktivitas = Aktivitas::create([
-                'user_id' => $request->user()->id,
+                'employee_id' => $employee->id,
                 'tugas' => $request->tugas,
                 'mulai' => $request->mulai,
                 'berakhir' => $request->berakhir,
@@ -60,7 +66,6 @@ class AktivitasController extends Controller
                 'akurasi_meter' => $request->akurasi_meter,
             ]);
 
-            // Upload foto jika ada
             if ($request->hasFile('fotos')) {
                 foreach ($request->file('fotos') as $index => $foto) {
                     $path = $foto->store('foto_aktivitas', 'public');
@@ -79,6 +84,7 @@ class AktivitasController extends Controller
                 'message' => 'Aktivitas berhasil disimpan',
                 'data' => $aktivitas->load(['fotos', 'tipeAktivitas']),
             ], 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -89,11 +95,15 @@ class AktivitasController extends Controller
         }
     }
 
-    // GET /user/aktivitas/{id}
+    // =========================================================================
+    // SHOW — GET /user/aktivitas/{id}
+    // =========================================================================
+
     public function show(Request $request, int $id): JsonResponse
     {
-        $aktivitas = Aktivitas::with('fotos')
-            ->where('user_id', $request->user()->id)
+        $employee = $this->getEmployee($request);
+        $aktivitas = Aktivitas::with(['fotos', 'tipeAktivitas'])
+            ->where('employee_id', $employee->id)
             ->find($id);
 
         if (! $aktivitas) {
@@ -110,10 +120,14 @@ class AktivitasController extends Controller
         ]);
     }
 
-    // PUT /user/aktivitas/{id}
+    // =========================================================================
+    // UPDATE — PUT /user/aktivitas/{id}
+    // =========================================================================
+
     public function update(UpdateAktivitasRequest $request, int $id): JsonResponse
     {
-        $aktivitas = Aktivitas::where('user_id', $request->user()->id)->find($id);
+        $employee = $this->getEmployee($request);
+        $aktivitas = Aktivitas::where('employee_id', $employee->id)->find($id);
 
         if (! $aktivitas) {
             return response()->json([
@@ -126,7 +140,8 @@ class AktivitasController extends Controller
         try {
             $aktivitas->update($request->only([
                 'tugas', 'mulai', 'berakhir',
-                'tipe_aktivitas', 'latitude', 'longitude', 'akurasi_meter',
+                'tipe_aktivitas_id', 'tujuan', 'kendaraan_nopol',
+                'latitude', 'longitude', 'akurasi_meter',
             ]));
 
             // Hapus foto yang dipilih
@@ -159,8 +174,9 @@ class AktivitasController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Aktivitas berhasil diperbarui',
-                'data' => $aktivitas->load('fotos'),
+                'data' => $aktivitas->load(['fotos', 'tipeAktivitas']),
             ]);
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -171,10 +187,14 @@ class AktivitasController extends Controller
         }
     }
 
-    // DELETE /user/aktivitas/{id}
+    // =========================================================================
+    // DESTROY — DELETE /user/aktivitas/{id}
+    // =========================================================================
+
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $aktivitas = Aktivitas::where('user_id', $request->user()->id)->find($id);
+        $employee = $this->getEmployee($request);
+        $aktivitas = Aktivitas::where('employee_id', $employee->id)->find($id);
 
         if (! $aktivitas) {
             return response()->json([
@@ -185,12 +205,11 @@ class AktivitasController extends Controller
 
         DB::beginTransaction();
         try {
-            // Hapus semua foto dari storage
             foreach ($aktivitas->fotos as $foto) {
                 Storage::disk('public')->delete($foto->foto_path);
             }
 
-            $aktivitas->delete(); // cascade hapus aktivitas_foto via DB
+            $aktivitas->delete();
 
             DB::commit();
 
@@ -198,6 +217,7 @@ class AktivitasController extends Controller
                 'status' => true,
                 'message' => 'Aktivitas berhasil dihapus',
             ]);
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -206,5 +226,23 @@ class AktivitasController extends Controller
                 'message' => 'Gagal menghapus aktivitas: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    // =========================================================================
+    // HELPER PRIVATE
+    // =========================================================================
+
+    /**
+     * Ambil employee dari user yang sedang login.
+     */
+    private function getEmployee(Request $request): \App\Models\Employee
+    {
+        $employee = $request->user()->employee;
+
+        if (! $employee) {
+            abort(403, 'Profil karyawan tidak ditemukan. Hubungi admin.');
+        }
+
+        return $employee;
     }
 }

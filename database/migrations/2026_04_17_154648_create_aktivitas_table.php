@@ -10,11 +10,13 @@ return new class extends Migration
     {
         Schema::create('aktivitas', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
             $table->string('tugas');
             $table->datetime('mulai');
             $table->datetime('berakhir');
-            $table->string('tipe_aktivitas');
+            $table->unsignedBigInteger('tipe_aktivitas_id')->constrained('tipe_aktivitas')->nullable();
+            $table->string('tujuan')->nullable();
+            $table->string('kendaraan_nopol')->nullable();
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
             $table->decimal('akurasi_meter', 8, 2)->nullable();

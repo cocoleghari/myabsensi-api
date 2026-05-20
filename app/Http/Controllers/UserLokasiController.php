@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Absensi;
-use App\Models\Lokasi;
+use App\Models\Employee;
+use App\Models\EmployeePusatLokasi;
+use App\Models\EmployeeShift;
 use App\Services\FaceRecognitionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,18 +16,124 @@ class UserLokasiController extends Controller
 {
     public function __construct(private FaceRecognitionService $faceService) {}
 
+    // =========================================================================
+    // HELPER PRIVATE
+    // =========================================================================
+
+    /**
+     * Ambil employee dari user yang sedang login.
+     * Throw jika belum ada profil karyawan.
+     */
+    private function getEmployee(Request $request): Employee
+    {
+        $employee = $request->user()->employee;
+
+        if (! $employee) {
+            abort(403, 'Profil karyawan tidak ditemukan. Hubungi admin.');
+        }
+
+        return $employee;
+    }
+
+    /**
+     * Ambil shift aktif karyawan hari ini.
+     * Return null jika belum di-assign shift.
+     */
+    private function getShiftAktif(Employee $employee): ?\App\Models\Shift
+    {
+        $employeeShift = EmployeeShift::aktifPada(now())
+            ->where('employee_id', $employee->id)
+            ->with(['shift', 'pattern.days.shift'])
+            ->first();
+
+        if (! $employeeShift) {
+            return null;
+        }
+
+        // Mode 1: shift langsung
+        if ($employeeShift->shift_id && $employeeShift->shift) {
+            return $employeeShift->shift;
+        }
+
+        // Mode 2: pola shift mingguan
+        if ($employeeShift->pattern_id && $employeeShift->pattern) {
+            return $employeeShift->pattern->getShiftForDate(now());
+        }
+
+        return null;
+    }
+
+    /**
+     * Buat nama file yang aman dari nama karyawan.
+     */
+    private function namaFileAman(Employee $employee): string
+    {
+        $nama = $employee->nickname ?? $employee->full_name ?? 'karyawan';
+        $nama = strtolower($nama);
+        $nama = preg_replace('/\s+/', '_', $nama);
+        $nama = preg_replace('/[^a-z0-9_]/', '', $nama);
+        $nama = trim($nama, '_');
+
+        return $nama ?: 'employee_'.$employee->id;
+    }
+
+    /**
+     * Rumus Haversine — hitung jarak dua koordinat dalam meter.
+     */
+    private function hitungJarak(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earthRadius = 6371000;
+        $latFrom = deg2rad($lat1);
+        $lonFrom = deg2rad($lon1);
+        $latTo = deg2rad($lat2);
+        $lonTo = deg2rad($lon2);
+        $latDelta = $latTo - $latFrom;
+        $lonDelta = $lonTo - $lonFrom;
+
+        $angle = 2 * asin(sqrt(
+            pow(sin($latDelta / 2), 2) +
+            cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)
+        ));
+
+        return $angle * $earthRadius;
+    }
+
+    // =========================================================================
+    // LOKASI USER
+    // =========================================================================
+
+    /**
+     * Ambil daftar pusat lokasi yang terdaftar untuk karyawan ini.
+     * Menggunakan pivot employee_pusat_lokasi (menggantikan tabel lokasis).
+     */
     public function getUserLokasi(Request $request)
     {
         try {
-            $user = $request->user();
-            Log::info('getUserLokasi - User ID: '.$user->id);
+            $employee = $this->getEmployee($request);
 
-            $lokasis = Lokasi::where('user_id', $user->id)
-                ->select('id', 'lokasi', 'koordinat')
-                ->orderBy('lokasi')
-                ->get();
+            // Ambil via pivot, sertakan data pusat lokasi
+            $lokasis = EmployeePusatLokasi::where('employee_id', $employee->id)
+                ->with('pusatLokasi:id,nama_lokasi,titik_kordinat,is_active')
+                ->get()
+                ->map(function ($pivot) {
+                    $koordinat = $pivot->pusatLokasi?->getKoordinatArray() ?? ['lat' => 0, 'lng' => 0];
 
-            return response()->json($lokasis);
+                    return [
+                        'id' => $pivot->id,                          // id pivot
+                        'pusat_lokasi_id' => $pivot->pusat_lokasi_id,
+                        'nama_lokasi' => $pivot->pusatLokasi?->nama_lokasi,
+                        'titik_kordinat' => $pivot->pusatLokasi?->titik_kordinat,
+                        'latitude' => $koordinat['lat'],
+                        'longitude' => $koordinat['lng'],
+                        'radius_meter' => $pivot->radius_meter,
+                        'is_active' => $pivot->pusatLokasi?->is_active ?? false,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $lokasis,
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Error getUserLokasi: '.$e->getMessage());
@@ -37,19 +145,24 @@ class UserLokasiController extends Controller
         }
     }
 
+    // =========================================================================
+    // ABSENSI
+    // =========================================================================
+
     public function submitAbsensiOtomatis(Request $request)
     {
         Log::info('='.str_repeat('=', 50));
         Log::info('SUBMIT ABSENSI OTOMATIS');
 
         try {
-            $user = $request->user();
+            $employee = $this->getEmployee($request);
             $tipe = $request->tipe_absen;
-            $titikKoordinatKamu = $request->titik_koordinat_kamu;
+            $userLat = floatval($request->latitude);
+            $userLng = floatval($request->longitude);
 
-            Log::info('User ID: '.$user->id);
+            Log::info('Employee ID: '.$employee->id);
             Log::info('Tipe Absen: '.$tipe);
-            Log::info('Posisi User: '.$titikKoordinatKamu);
+            Log::info("Koordinat User: {$userLat}, {$userLng}");
 
             // ── 1. Validasi input dasar ──────────────────────────────
             if (! $tipe || ! in_array($tipe, ['masuk', 'pulang'])) {
@@ -59,10 +172,10 @@ class UserLokasiController extends Controller
                 ], 422);
             }
 
-            if (! $titikKoordinatKamu) {
+            if (! $request->filled('latitude') || ! $request->filled('longitude')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Titik koordinat kamu wajib diisi',
+                    'message' => 'Koordinat latitude dan longitude wajib diisi',
                 ], 422);
             }
 
@@ -73,23 +186,46 @@ class UserLokasiController extends Controller
                 ], 422);
             }
 
-            // ── 2. Validasi status absen hari ini ────────────────────
-            $sudahAbsen = Absensi::where('user_id', $user->id)
+            // ── 2. Ambil shift aktif ─────────────────────────────────
+            $shift = $this->getShiftAktif($employee);
+
+            // Jika absensi offline, gunakan waktu asli dari client
+            $isOffline = $request->boolean('is_offline', false);
+            $sekarang = $isOffline && $request->filled('waktu_absen')
+                ? \Carbon\Carbon::parse($request->waktu_absen)->setTimezone('Asia/Jakarta')
+                : now()->setTimezone('Asia/Jakarta');
+
+            Log::info('Mode: '.($isOffline ? 'OFFLINE (waktu asli: '.$sekarang.')' : 'ONLINE'));
+            $tanggalAbsen = $shift
+                ? $shift->tanggalLogisAbsensi($sekarang)
+                : $sekarang->copy()->startOfDay();
+            Log::info('DEBUG SEKARANG', [
+                'sekarang' => $sekarang->toDateTimeString(),
+                'timezone' => $sekarang->timezone->getName(),
+                'startOfDay' => $sekarang->copy()->startOfDay()->toDateTimeString(),
+                'tanggalAbsen' => $tanggalAbsen->toDateString(),
+            ]);
+
+            Log::info('Shift: '.($shift?->nama ?? 'Tidak ada shift'));
+            Log::info('Tanggal Logis Absen: '.$tanggalAbsen->toDateString());
+
+            // ── 3. Validasi status absen pada tanggal logis ──────────
+            $sudahAbsen = Absensi::where('employee_id', $employee->id)
                 ->where('tipe_absen', $tipe)
-                ->whereDate('waktu_absen', now()->toDateString())
+                ->whereDate('tanggal_absen', $tanggalAbsen->toDateString())
                 ->exists();
 
             if ($sudahAbsen) {
                 return response()->json([
                     'success' => false,
-                    'message' => "Anda sudah melakukan absen $tipe hari ini",
+                    'message' => "Anda sudah melakukan absen {$tipe} hari ini",
                 ], 400);
             }
 
-            if ($tipe == 'pulang') {
-                $sudahMasuk = Absensi::where('user_id', $user->id)
+            if ($tipe === 'pulang') {
+                $sudahMasuk = Absensi::where('employee_id', $employee->id)
                     ->where('tipe_absen', 'masuk')
-                    ->whereDate('waktu_absen', now()->toDateString())
+                    ->whereDate('tanggal_absen', $tanggalAbsen->toDateString())
                     ->exists();
 
                 if (! $sudahMasuk) {
@@ -100,30 +236,31 @@ class UserLokasiController extends Controller
                 }
             }
 
-            // ── 3. Cek wajah user sudah terdaftar ───────────────────
-            if (! $user->wajah_terdaftar || ! $user->foto_wajah_path) {
+            // ── 4. Validasi wajah sudah terdaftar ───────────────────
+            if (! $employee->wajah_terdaftar || ! $employee->foto_wajah_path) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Wajah Anda belum terdaftar. Hubungi admin untuk mendaftarkan wajah terlebih dahulu.',
                 ], 403);
             }
 
-            // ── 4. Validasi format koordinat ─────────────────────────
-            $userParts = explode(',', $titikKoordinatKamu);
-            if (count($userParts) != 2) {
+            // ── 5. Validasi format foto ──────────────────────────────
+            $file = $request->file('foto_wajah');
+            $extension = strtolower($file->getClientOriginalExtension());
+
+            if (! in_array($extension, ['jpg', 'jpeg', 'png'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Format koordinat tidak valid',
+                    'message' => 'Format foto harus JPG, JPEG, atau PNG',
                 ], 422);
             }
 
-            $userLat = floatval(trim($userParts[0]));
-            $userLng = floatval(trim($userParts[1]));
+            // ── 6. Cek radius lokasi (via pivot employee_pusat_lokasi) ──
+            $pivotLokasis = EmployeePusatLokasi::where('employee_id', $employee->id)
+                ->with('pusatLokasi')
+                ->get();
 
-            // ── 5. Cek radius lokasi ─────────────────────────────────
-            $lokasis = Lokasi::where('user_id', $user->id)->get();
-
-            if ($lokasis->isEmpty()) {
+            if ($pivotLokasis->isEmpty()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Anda belum memiliki lokasi absensi. Hubungi admin.',
@@ -133,28 +270,30 @@ class UserLokasiController extends Controller
             $lokasiTerdekat = null;
             $jarakTerdekat = PHP_FLOAT_MAX;
 
-            foreach ($lokasis as $lokasi) {
-                $lokasiParts = explode(',', $lokasi->koordinat);
-                if (count($lokasiParts) != 2) {
+            foreach ($pivotLokasis as $pivot) {
+                $pusatLokasi = $pivot->pusatLokasi;
+
+                if (! $pusatLokasi || ! $pusatLokasi->is_active) {
                     continue;
                 }
 
+                $koordinat = $pusatLokasi->getKoordinatArray();
                 $jarak = $this->hitungJarak(
                     $userLat, $userLng,
-                    floatval(trim($lokasiParts[0])),
-                    floatval(trim($lokasiParts[1]))
+                    (float) $koordinat['lat'],
+                    (float) $koordinat['lng']
                 );
 
-                Log::info("Jarak ke {$lokasi->lokasi}: {$jarak} meter");
+                Log::info("Jarak ke {$pusatLokasi->nama_lokasi}: {$jarak} meter (radius: {$pivot->radius_meter}m)");
 
                 if ($jarak < $jarakTerdekat) {
                     $jarakTerdekat = $jarak;
                     $lokasiTerdekat = [
-                        'id' => $lokasi->id,
-                        'lokasi' => $lokasi->lokasi,
-                        'koordinat' => $lokasi->koordinat,
+                        'pusat_lokasi_id' => $pusatLokasi->id,
+                        'nama_lokasi' => $pusatLokasi->nama_lokasi,
                         'jarak' => round($jarak, 2),
-                        'dalam_radius' => $jarak <= 100,
+                        'radius_meter' => $pivot->radius_meter,
+                        'dalam_radius' => $jarak <= $pivot->radius_meter,
                     ];
                 }
             }
@@ -167,42 +306,32 @@ class UserLokasiController extends Controller
                     'message' => 'Anda berada di luar jangkauan absen',
                     'data' => [
                         'jarak_terdekat' => round($jarakTerdekat, 2),
-                        'batas_radius' => 100,
+                        'batas_radius' => $lokasiTerdekat['radius_meter'] ?? 100,
                         'lokasi_terdekat' => $lokasiTerdekat,
                     ],
                 ], 403);
             }
 
-            // ── 6. Simpan foto absen sementara ───────────────────────
-            $file = $request->file('foto_wajah');
-            $extension = strtolower($file->getClientOriginalExtension());
-
-            if (! in_array($extension, ['jpg', 'jpeg', 'png'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Format foto harus JPG, JPEG, atau PNG',
-                ], 422);
-            }
-
-            // Nama file dari nama_stempel
-            $namaStempel = $user->nama_stempel ?? $user->name ?? 'user';
-            $namaFile = strtolower($namaStempel);
-            $namaFile = preg_replace('/\s+/', '_', $namaFile);
-            $namaFile = preg_replace('/[^a-z0-9_]/', '', $namaFile);
-            $namaFile = trim($namaFile, '_');
-            $namaFile = $namaFile ?: 'user_'.$user->id;
-
+            // ── 7. Simpan foto sementara ─────────────────────────────
+            $namaFile = $this->namaFileAman($employee);
             $namaFileSementara = "temp_{$tipe}_{$namaFile}_".time().".{$extension}";
             $pathSementara = $file->storeAs('foto_absensi_temp', $namaFileSementara, 'local');
 
-            // ── 7. Face recognition ──────────────────────────────────
-            Log::info('Memulai face recognition untuk user: '.$user->id);
+            // ── 8. Face recognition ──────────────────────────────────
+            Log::info('Memulai face recognition untuk employee: '.$employee->id);
 
             $pathAbsenAbsolut = Storage::disk('local')->path($pathSementara);
-            $pathReferensiAbsolut = Storage::disk('public')->path($user->foto_wajah_path);
+            $pathReferensiAbsolut = Storage::disk('public')->path($employee->foto_wajah_path);
 
-            Log::info('Path absen: '.$pathAbsenAbsolut);
-            Log::info('Path referensi: '.$pathReferensiAbsolut);
+            if (! file_exists($pathReferensiAbsolut)) {
+                Storage::disk('local')->delete($pathSementara);
+                Log::error("File referensi tidak ditemukan: {$pathReferensiAbsolut}");
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File foto referensi tidak ditemukan. Hubungi admin.',
+                ], 500);
+            }
 
             $hasilVerifikasi = $this->faceService->verifyByPath(
                 $pathAbsenAbsolut,
@@ -212,8 +341,7 @@ class UserLokasiController extends Controller
             Log::info('Hasil face recognition:', $hasilVerifikasi);
 
             if (! $hasilVerifikasi['verified']) {
-                // Hapus foto temp jika verifikasi gagal
-                Storage::delete($pathSementara);
+                Storage::disk('local')->delete($pathSementara);
 
                 return response()->json([
                     'success' => false,
@@ -222,37 +350,58 @@ class UserLokasiController extends Controller
                 ], 403);
             }
 
-            // / ── 8. Pindahkan foto ke folder permanen ─────────────────
+            // ── 9. Pindahkan foto ke folder permanen ─────────────────
             $namaFilePermanent = "{$tipe}_{$namaFile}_".time().".{$extension}";
             $pathPermanent = "public/foto_absensi/{$namaFilePermanent}";
-
             Storage::move($pathSementara, $pathPermanent);
 
-            $fotoUrl = config('app.url').Storage::url($pathPermanent);
+            // ── 10. Kalkulasi shift ───────────────────────────────────
+            $menitTerlambat = 0;
+            $menitLembur = 0;
+            $statusAbsen = 'tepat_waktu';
 
-            // ── 9. Simpan absensi ke database ────────────────────────
+            if ($shift) {
+                if ($tipe === 'masuk') {
+                    $menitTerlambat = $shift->hitungMenitTerlambat($sekarang);
+                    $statusAbsen = $menitTerlambat > 0 ? 'terlambat' : 'tepat_waktu';
+                } else {
+                    $menitLembur = $shift->hitungMenitLembur($sekarang);
+                    $statusAbsen = $menitLembur > 0 ? 'lembur' : 'tepat_waktu';
+                }
+            }
+
+            Log::info("Status: {$statusAbsen}, Terlambat: {$menitTerlambat} menit, Lembur: {$menitLembur} menit");
+
+            // ── 11. Simpan ke database ────────────────────────────────
             DB::beginTransaction();
 
             try {
-                $absensi = new Absensi;
-                $absensi->user_id = $user->id;
-                $absensi->lokasi_id = $lokasiTerdekat['id'];
-                $absensi->titik_koordinat_lokasi = $lokasiTerdekat['koordinat'];
-                $absensi->titik_koordinat_kamu = $titikKoordinatKamu;
-                $absensi->foto_wajah = $fotoUrl;
-                $absensi->tipe_absen = $tipe;
-                $absensi->waktu_absen = now();
-                $absensi->jarak_absensi = $lokasiTerdekat['jarak'];
-                $absensi->confidence_score = $hasilVerifikasi['confidence'];
-                $absensi->wajah_cocok = true;
-                $absensi->save();
+                $absensi = Absensi::create([
+                    'employee_id' => $employee->id,
+                    'pusat_lokasi_id' => $lokasiTerdekat['pusat_lokasi_id'],
+                    'shift_id' => $shift?->id,
+                    'tanggal_absen' => $tanggalAbsen->toDateString(),
+                    'tipe_absen' => $tipe,
+                    'waktu_absen' => $sekarang,
+                    'latitude' => $userLat,
+                    'longitude' => $userLng,
+                    'jarak_meter' => $lokasiTerdekat['jarak'],
+                    'foto_absen_path' => $namaFilePermanent,
+                    'confidence_score' => $hasilVerifikasi['confidence'],
+                    'wajah_cocok' => true,
+                    'status' => $statusAbsen,
+                    'menit_terlambat' => $menitTerlambat,
+                    'menit_lembur' => $menitLembur,
+                    'catatan' => $request->input('catatan'), // ← TAMBAH INI
+                ]);
 
                 DB::commit();
 
                 Log::info("Absensi {$tipe} berhasil:", [
                     'id' => $absensi->id,
-                    'lokasi' => $lokasiTerdekat['lokasi'],
+                    'lokasi' => $lokasiTerdekat['nama_lokasi'],
                     'jarak' => $lokasiTerdekat['jarak'].' meter',
+                    'status' => $statusAbsen,
                     'confidence' => round($hasilVerifikasi['confidence'] * 100, 1).'%',
                 ]);
 
@@ -262,17 +411,20 @@ class UserLokasiController extends Controller
                     'data' => [
                         'id' => $absensi->id,
                         'tipe_absen' => $absensi->tipe_absen,
+                        'tanggal_absen' => $absensi->tanggal_absen->toDateString(),
                         'waktu_absen' => $absensi->waktu_absen->toDateTimeString(),
-                        'lokasi' => $lokasiTerdekat['lokasi'],
+                        'lokasi' => $lokasiTerdekat['nama_lokasi'],
                         'jarak' => $lokasiTerdekat['jarak'],
-                        'foto_wajah' => $absensi->foto_wajah,
+                        'shift' => $shift?->nama,
+                        'status' => $statusAbsen,
+                        'menit_terlambat' => $menitTerlambat,
+                        'menit_lembur' => $menitLembur,
                         'confidence' => round($hasilVerifikasi['confidence'] * 100, 1).'%',
                     ],
                 ], 201);
 
             } catch (\Exception $e) {
                 DB::rollBack();
-                // Hapus foto permanent jika DB gagal
                 Storage::delete($pathPermanent);
                 Log::error('Error saat menyimpan absensi: '.$e->getMessage());
                 throw $e;
@@ -288,6 +440,10 @@ class UserLokasiController extends Controller
         }
     }
 
+    // =========================================================================
+    // WAJAH
+    // =========================================================================
+
     public function daftarkanWajah(Request $request)
     {
         $request->validate([
@@ -295,35 +451,26 @@ class UserLokasiController extends Controller
         ]);
 
         try {
-            $user = $request->user();
+            $employee = $this->getEmployee($request);
             $file = $request->file('foto_wajah');
 
             // Hapus foto lama jika ada
-            if ($user->foto_wajah_path) {
-                Storage::disk('public')->delete($user->foto_wajah_path);
+            if ($employee->foto_wajah_path) {
+                Storage::disk('public')->delete($employee->foto_wajah_path);
             }
 
-            // Buat nama file dari nama_stempel
-            $namaStempel = $user->nama_stempel ?? $user->name ?? 'user';
-
-            $namaFile = strtolower($namaStempel);
-            $namaFile = preg_replace('/\s+/', '_', $namaFile);
-            $namaFile = preg_replace('/[^a-z0-9_]/', '', $namaFile);
-            $namaFile = trim($namaFile, '_');
-            $namaFile = $namaFile ?: 'user_'.$user->id;
-
-            $fileName = 'wajah_'.$namaFile.'.jpg';  // tanpa timestamp — 1 user 1 file referensi
-
+            $namaFile = $this->namaFileAman($employee);
+            $fileName = 'wajah_'.$namaFile.'.jpg';
             $path = $file->storeAs('wajah_referensi', $fileName, 'public');
 
-            $user->update([
+            $employee->update([
                 'foto_wajah_path' => $path,
                 'wajah_terdaftar' => true,
             ]);
 
             $url = Storage::disk('public')->url($path);
 
-            Log::info("Wajah terdaftar - User: {$user->id}, Path: {$path}, URL: {$url}");
+            Log::info("Wajah terdaftar - Employee: {$employee->id}, Path: {$path}");
 
             return response()->json([
                 'success' => true,
@@ -341,26 +488,92 @@ class UserLokasiController extends Controller
         }
     }
 
+    public function verifikasiWajahSaja(Request $request)
+    {
+        $request->validate(['foto_wajah' => 'required|image|max:5120']);
+
+        try {
+            $employee = $this->getEmployee($request);
+
+            if (! $employee->wajah_terdaftar || ! $employee->foto_wajah_path) {
+                return response()->json([
+                    'verified' => false,
+                    'confidence' => 0,
+                    'message' => 'Wajah belum terdaftar',
+                ]);
+            }
+
+            $namaFile = $this->namaFileAman($employee);
+            $pathTemp = $request->file('foto_wajah')
+                ->storeAs('foto_absensi_temp', "verify_{$namaFile}_".time().'.jpg', 'local');
+
+            $pathReferensi = Storage::disk('public')->path($employee->foto_wajah_path);
+            $pathAbsen = Storage::disk('local')->path($pathTemp);
+
+            if (! file_exists($pathReferensi)) {
+                Storage::disk('local')->delete($pathTemp);
+
+                return response()->json([
+                    'verified' => false,
+                    'confidence' => 0,
+                    'message' => 'File foto referensi tidak ditemukan',
+                ]);
+            }
+
+            $hasil = $this->faceService->verifyByPath($pathAbsen, $pathReferensi);
+            Storage::disk('local')->delete($pathTemp);
+
+            return response()->json([
+                'verified' => $hasil['verified'],
+                'confidence' => $hasil['confidence'],
+                'message' => $hasil['message'],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error verifikasiWajahSaja: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal verifikasi wajah: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // =========================================================================
+    // STATUS & RIWAYAT
+    // =========================================================================
+
     public function cekStatusHariIni(Request $request)
     {
         try {
-            $userId = $request->user()->id;
+            $employee = $this->getEmployee($request);
+            $shift = $this->getShiftAktif($employee);
 
-            $absensiMasuk = Absensi::where('user_id', $userId)
+            $sekarang = now()->setTimezone('Asia/Jakarta');
+            $tanggalAbsen = $shift
+                ? $shift->tanggalLogisAbsensi($sekarang)
+                : $sekarang->copy()->startOfDay();
+
+            $absensiMasuk = Absensi::where('employee_id', $employee->id)
                 ->where('tipe_absen', 'masuk')
-                ->whereDate('waktu_absen', now()->toDateString())
-                ->with('lokasi')
+                ->whereDate('tanggal_absen', $tanggalAbsen->toDateString())
+                ->with('pusatLokasi:id,nama_lokasi')
                 ->first();
 
-            $absensiPulang = Absensi::where('user_id', $userId)
+            $absensiPulang = Absensi::where('employee_id', $employee->id)
                 ->where('tipe_absen', 'pulang')
-                ->whereDate('waktu_absen', now()->toDateString())
-                ->with('lokasi')
+                ->whereDate('tanggal_absen', $tanggalAbsen->toDateString())
+                ->with('pusatLokasi:id,nama_lokasi')
                 ->first();
 
             return response()->json([
                 'success' => true,
-                'tanggal' => now()->toDateString(),
+                'tanggal' => $tanggalAbsen->toDateString(),
+                'shift' => $shift ? [
+                    'nama' => $shift->nama,
+                    'jam_masuk' => $shift->jam_masuk,
+                    'jam_pulang' => $shift->jam_pulang,
+                ] : null,
                 'sudah_masuk' => (bool) $absensiMasuk,
                 'sudah_pulang' => (bool) $absensiPulang,
                 'data_masuk' => $absensiMasuk,
@@ -380,97 +593,27 @@ class UserLokasiController extends Controller
     public function getRiwayatAbsensi(Request $request)
     {
         try {
-            $userId = $request->user()->id;
+            $employee = $this->getEmployee($request);
 
-            $absensis = Absensi::where('user_id', $userId)
-                ->with('lokasi')
+            $absensis = Absensi::where('employee_id', $employee->id)
+                ->with([
+                    'pusatLokasi:id,nama_lokasi',
+                    'shift:id,nama,kode,jam_masuk,jam_pulang',
+                    // Relasi ke permintaan untuk ambil alamat_pengajuan
+                    'permintaanAbsen:id,absensi_id,alamat_pengajuan',
+                ])
+                ->orderBy('tanggal_absen', 'desc')
                 ->orderBy('waktu_absen', 'desc')
                 ->get();
 
-            return response()->json($absensis);
-
+            return response()->json([
+                'success' => true,
+                'data' => $absensis,
+            ]);
         } catch (\Exception $e) {
             Log::error('Error getRiwayatAbsensi: '.$e->getMessage());
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengambil riwayat absensi',
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Gagal mengambil riwayat absensi'], 500);
         }
-    }
-
-    // Rumus Haversine — tidak berubah dari kode existing
-    private function hitungJarak($lat1, $lon1, $lat2, $lon2): float
-    {
-        $earthRadius = 6371000;
-        $latFrom = deg2rad($lat1);
-        $lonFrom = deg2rad($lon1);
-        $latTo = deg2rad($lat2);
-        $lonTo = deg2rad($lon2);
-        $latDelta = $latTo - $latFrom;
-        $lonDelta = $lonTo - $lonFrom;
-
-        $angle = 2 * asin(sqrt(
-            pow(sin($latDelta / 2), 2) +
-            cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)
-        ));
-
-        return $angle * $earthRadius;
-    }
-
-    public function verifikasiWajahSaja(Request $request)
-    {
-        $request->validate(['foto_wajah' => 'required|image|max:5120']);
-
-        $user = $request->user();
-
-        if (! $user->wajah_terdaftar || ! $user->foto_wajah_path) {
-            return response()->json([
-                'verified' => false,
-                'confidence' => 0,
-                'message' => 'Wajah belum terdaftar',
-            ]);
-        }
-
-        // Nama file dari nama_stempel
-        $namaStempel = $user->nama_stempel ?? $user->name ?? 'user';
-        $namaFile = strtolower($namaStempel);
-        $namaFile = preg_replace('/\s+/', '_', $namaFile);
-        $namaFile = preg_replace('/[^a-z0-9_]/', '', $namaFile);
-        $namaFile = trim($namaFile, '_');
-        $namaFile = $namaFile ?: 'user_'.$user->id;
-
-        // Simpan foto absen sementara di local disk
-        $pathTemp = $request->file('foto_wajah')
-            ->storeAs('foto_absensi_temp', "verify_{$namaFile}_".time().'.jpg', 'local');
-
-        // Path absolut foto referensi dari public disk
-        $pathReferensi = Storage::disk('public')->path($user->foto_wajah_path);
-        $pathAbsen = Storage::disk('local')->path($pathTemp);
-
-        Log::info("Verifikasi wajah - Referensi: {$pathReferensi}");
-        Log::info("Verifikasi wajah - Absen: {$pathAbsen}");
-
-        // Cek apakah file referensi ada
-        if (! file_exists($pathReferensi)) {
-            Storage::disk('local')->delete($pathTemp);
-            Log::error("File referensi tidak ditemukan: {$pathReferensi}");
-
-            return response()->json([
-                'verified' => false,
-                'confidence' => 0,
-                'message' => 'File foto referensi tidak ditemukan',
-            ]);
-        }
-
-        $hasil = $this->faceService->verifyByPath($pathAbsen, $pathReferensi);
-
-        Storage::disk('local')->delete($pathTemp);
-
-        return response()->json([
-            'verified' => $hasil['verified'],
-            'confidence' => $hasil['confidence'],
-            'message' => $hasil['message'],
-        ]);
     }
 }

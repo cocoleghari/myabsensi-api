@@ -11,12 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('lokasis', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('lokasi');
-            $table->string('koordinat');
-            $table->timestamps();
+        Schema::table('permintaan_absens', function (Blueprint $table) {
+            $table->string('alamat_pengajuan')->nullable()
+                ->after('jarak_meter')
+                ->comment('Alamat/nama lokasi aktual saat pengajuan dari client');
         });
     }
 
@@ -25,6 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('lokasis');
+        Schema::table('permintaan_absens', function (Blueprint $table) {
+            //
+        });
     }
 };

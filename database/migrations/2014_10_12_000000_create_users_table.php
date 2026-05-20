@@ -16,7 +16,12 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
-            $table->enum('role',['admin','user'])->default('user');
+            $table->enum('role', ['superadmin', 'admin', 'hrd', 'manager', 'supervisor', 'employee'])->default('employee');
+            $table->boolean('is_active')->default(true);
+            $table->string('fcm_token')->nullable()->comment('Firebase token untuk push notification Flutter');
+            $table->timestamp('email_verified_at')->nullable();
+            $table->rememberToken();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

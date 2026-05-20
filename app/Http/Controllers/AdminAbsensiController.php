@@ -3,17 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Absensi;
-use App\Models\User;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class AdminAbsensiController extends Controller
 {
+    // =========================================================================
+    // GET ALL ABSENSI
+    // =========================================================================
+
     public function getAllAbsensi(Request $request)
     {
         try {
-
             if ($request->user()->role !== 'admin') {
                 return response()->json([
                     'success' => false,
@@ -21,13 +24,36 @@ class AdminAbsensiController extends Controller
                 ], 403);
             }
 
-            $query = Absensi::with(['user', 'lokasi']);
+            $query = Absensi::with([
+                'employee:id,full_name,nickname,employee_code,nik',
+                'pusatLokasi:id,nama_lokasi,titik_kordinat',
+                'shift:id,nama,kode',
+            ]);
 
-            if ($request->has('user_id') && $request->user_id && $request->user_id !== '') {
-                $query->where('user_id', $request->user_id);
+            // Filter per karyawan
+            if ($request->filled('employee_id')) {
+                $query->where('employee_id', $request->employee_id);
             }
 
-            $absensis = $query->orderBy('waktu_absen', 'desc')->get();
+            // Filter per tanggal
+            if ($request->filled('tanggal')) {
+                $query->whereDate('tanggal_absen', $request->tanggal);
+            }
+
+            // Filter per bulan & tahun
+            if ($request->filled('bulan') && $request->filled('tahun')) {
+                $query->whereMonth('tanggal_absen', $request->bulan)
+                    ->whereYear('tanggal_absen', $request->tahun);
+            }
+
+            // Filter per status
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            $absensis = $query->orderBy('tanggal_absen', 'desc')
+                ->orderBy('waktu_absen', 'desc')
+                ->get();
 
             Log::info('Admin getAllAbsensi - Total: '.$absensis->count());
 
@@ -46,7 +72,11 @@ class AdminAbsensiController extends Controller
         }
     }
 
-    public function getAllUsers(Request $request)
+    // =========================================================================
+    // GET ALL EMPLOYEES (dropdown untuk filter)
+    // =========================================================================
+
+    public function getAllEmployees(Request $request)
     {
         try {
             if ($request->user()->role !== 'admin') {
@@ -56,32 +86,34 @@ class AdminAbsensiController extends Controller
                 ], 403);
             }
 
-            $users = User::select('id', 'name', 'email')
-                ->where('role', 'user')
-                ->orderBy('name')
+            $employees = Employee::select('id', 'full_name', 'nickname', 'employee_code', 'nik')
+                ->orderBy('full_name')
                 ->get();
 
-            Log::info('Admin getAllUsers - Total: '.$users->count());
+            Log::info('Admin getAllEmployees - Total: '.$employees->count());
 
             return response()->json([
                 'success' => true,
-                'data' => $users,
+                'data' => $employees,
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error getAllUsers: '.$e->getMessage());
+            Log::error('Error getAllEmployees: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data users',
+                'message' => 'Gagal mengambil data karyawan',
             ], 500);
         }
     }
 
-    public function deleteAbsensi($id)
+    // =========================================================================
+    // DELETE ABSENSI
+    // =========================================================================
+
+    public function deleteAbsensi(int $id)
     {
         try {
-            // Pastikan user adalah admin
             if (auth()->user()->role !== 'admin') {
                 return response()->json([
                     'success' => false,
@@ -98,35 +130,28 @@ class AdminAbsensiController extends Controller
                 ], 404);
             }
 
-            if ($absensi->foto_wajah) {
+            // Hapus foto dari storage jika ada
+            if ($absensi->foto_absen_path) {
                 try {
+                    // foto_absen_path menyimpan nama file saja (misal: masuk_john_1234.jpg)
+                    $storagePath = 'public/foto_absensi/'.$absensi->foto_absen_path;
 
-                    $url = $absensi->foto_wajah;
-
-                    $pathParts = explode('/storage/foto_absensi/', $url);
-                    if (count($pathParts) > 1) {
-                        $fileName = $pathParts[1];
-                        $storagePath = 'public/foto_absensi/'.$fileName;
-
-                        if (Storage::exists($storagePath)) {
-                            Storage::delete($storagePath);
-                            Log::info('Foto absensi dihapus: '.$storagePath);
-                        } else {
-                            Log::warning('Foto tidak ditemukan di storage: '.$storagePath);
-                        }
+                    if (Storage::exists($storagePath)) {
+                        Storage::delete($storagePath);
+                        Log::info('Foto absensi dihapus: '.$storagePath);
                     } else {
-                        Log::warning('Format URL foto tidak sesuai: '.$url);
+                        Log::warning('Foto tidak ditemukan di storage: '.$storagePath);
                     }
                 } catch (\Exception $e) {
-                    Log::error('Error saat menghapus foto: '.$e->getMessage());
+                    Log::error('Error saat menghapus foto absensi: '.$e->getMessage());
                 }
             }
 
             $absensi->delete();
 
-            Log::info('Absensi deleted:', [
+            Log::info('Absensi deleted', [
                 'id' => $id,
-                'user_id' => $absensi->user_id,
+                'employee_id' => $absensi->employee_id,
                 'admin_id' => auth()->id(),
             ]);
 
@@ -145,10 +170,13 @@ class AdminAbsensiController extends Controller
         }
     }
 
+    // =========================================================================
+    // STATISTICS
+    // =========================================================================
+
     public function getStatistics(Request $request)
     {
         try {
-            // tambah ini
             if ($request->user()->role !== 'admin') {
                 return response()->json([
                     'success' => false,
@@ -159,14 +187,17 @@ class AdminAbsensiController extends Controller
             $today = now()->toDateString();
 
             $statistics = [
-                'total_users' => User::where('role', 'user')->count(),
+                'total_employees' => Employee::count(),
                 'total_absensi' => Absensi::count(),
-                'absensi_hari_ini' => Absensi::whereDate('waktu_absen', $today)->count(),
-                'absensi_masuk_hari_ini' => Absensi::whereDate('waktu_absen', $today)
+                'absensi_hari_ini' => Absensi::whereDate('tanggal_absen', $today)->count(),
+                'absensi_masuk_hari_ini' => Absensi::whereDate('tanggal_absen', $today)
                     ->where('tipe_absen', 'masuk')
                     ->count(),
-                'absensi_pulang_hari_ini' => Absensi::whereDate('waktu_absen', $today)
+                'absensi_pulang_hari_ini' => Absensi::whereDate('tanggal_absen', $today)
                     ->where('tipe_absen', 'pulang')
+                    ->count(),
+                'terlambat_hari_ini' => Absensi::whereDate('tanggal_absen', $today)
+                    ->where('status', 'terlambat')
                     ->count(),
             ];
 

@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('pusat_lokasis', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->string('nama_lokasi');
             $table->string('titik_kordinat');
             $table->text('keterangan')->nullable();
-            $table->timestamps();
-
-            // Index untuk pencarian
+            $table->boolean('is_active')->default(true);
             $table->index('nama_lokasi');
+            $table->timestamps();
         });
     }
 

@@ -1,6 +1,7 @@
 <?php
 
 // app/Models/Lokasi.php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,7 @@ class Lokasi extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'lokasi', 'koordinat'];
+    protected $fillable = ['employee_id', 'lokasi', 'koordinat'];
 
     public function user()
     {

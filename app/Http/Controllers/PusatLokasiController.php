@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\Validator;
 
 class PusatLokasiController extends Controller
 {
+    // =========================================================================
+    // INDEX
+    // =========================================================================
+
     public function index(Request $request)
     {
         try {
@@ -16,31 +20,36 @@ class PusatLokasiController extends Controller
 
             $query = PusatLokasi::query();
 
-            if ($request->has('search') && $request->search) {
+            // Opsional: sertakan jumlah karyawan terdaftar di tiap lokasi
+            if ($request->boolean('with_employee_count')) {
+                $query->withCount('employees');
+            }
+
+            if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('nama_lokasi', 'like', "%{$search}%")
                         ->orWhere('keterangan', 'like', "%{$search}%");
                 });
-                Log::info('Search applied: '.$search);
+            }
+
+            if ($request->boolean('active_only')) {
+                $query->where('is_active', true);
             }
 
             $sortField = $request->get('sort_field', 'created_at');
             $sortOrder = $request->get('sort_order', 'desc');
 
             $allowedSortFields = ['id', 'nama_lokasi', 'created_at', 'updated_at'];
-            if (in_array($sortField, $allowedSortFields)) {
-                $query->orderBy($sortField, $sortOrder === 'asc' ? 'asc' : 'desc');
-            } else {
-                $query->orderBy('created_at', 'desc');
-            }
+            $query->orderBy(
+                in_array($sortField, $allowedSortFields) ? $sortField : 'created_at',
+                $sortOrder === 'asc' ? 'asc' : 'desc'
+            );
 
-            if ($request->has('per_page') && is_numeric($request->per_page)) {
-                $data = $query->paginate($request->per_page);
-                Log::info('Pagination: page '.($request->get('page', 1)).', per_page: '.$request->per_page);
+            if ($request->filled('per_page') && is_numeric($request->per_page)) {
+                $data = $query->paginate((int) $request->per_page);
             } else {
                 $data = $query->get();
-                Log::info('Total data: '.$data->count());
             }
 
             Log::info('Get pusat lokasi success');
@@ -53,7 +62,6 @@ class PusatLokasiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error get pusat lokasi: '.$e->getMessage());
-            Log::error('Stack trace: '.$e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
@@ -63,22 +71,25 @@ class PusatLokasiController extends Controller
         }
     }
 
+    // =========================================================================
+    // STORE
+    // =========================================================================
+
     public function store(Request $request)
     {
         try {
             Log::info('POST Pusat Lokasi - Start');
             Log::info('Request data:', $request->all());
 
-            // Validasi input
             $validator = Validator::make($request->all(), [
+                'company_id' => 'required|exists:companies,id',
                 'nama_lokasi' => 'required|string|max:255',
                 'titik_kordinat' => 'required|string|max:100',
                 'keterangan' => 'nullable|string',
+                'is_active' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
-                Log::warning('Validasi gagal:', $validator->errors()->toArray());
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Validasi gagal',
@@ -86,40 +97,22 @@ class PusatLokasiController extends Controller
                 ], 422);
             }
 
-            $kordinat = $request->titik_kordinat;
-            $parts = explode(',', $kordinat);
-
-            if (count($parts) != 2) {
-                Log::warning('Format koordinat tidak valid: '.$kordinat);
-
+            if (! $this->validasiKordinat($request->titik_kordinat, $errorMsg)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Format koordinat tidak valid. Gunakan format: lat,lng (contoh: -6.893361,107.602376)',
-                ], 422);
-            }
-
-            $lat = trim($parts[0]);
-            $lng = trim($parts[1]);
-
-            if (! is_numeric($lat) || ! is_numeric($lng)) {
-                Log::warning('Koordinat bukan angka: lat='.$lat.', lng='.$lng);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Koordinat harus berupa angka',
+                    'message' => $errorMsg,
                 ], 422);
             }
 
             $pusatLokasi = PusatLokasi::create([
+                'company_id' => $request->company_id,
                 'nama_lokasi' => $request->nama_lokasi,
-                'titik_kordinat' => $kordinat,
+                'titik_kordinat' => $request->titik_kordinat,
                 'keterangan' => $request->keterangan,
+                'is_active' => $request->is_active ?? true,
             ]);
 
-            Log::info('Pusat lokasi created', [
-                'id' => $pusatLokasi->id,
-                'nama' => $pusatLokasi->nama_lokasi,
-            ]);
+            Log::info('Pusat lokasi created', ['id' => $pusatLokasi->id, 'nama' => $pusatLokasi->nama_lokasi]);
 
             return response()->json([
                 'success' => true,
@@ -129,7 +122,6 @@ class PusatLokasiController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error store pusat lokasi: '.$e->getMessage());
-            Log::error('Stack trace: '.$e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
@@ -139,16 +131,16 @@ class PusatLokasiController extends Controller
         }
     }
 
-    public function show($id)
+    // =========================================================================
+    // SHOW
+    // =========================================================================
+
+    public function show(int $id)
     {
         try {
-            Log::info('GET Pusat Lokasi Detail - ID: '.$id);
-
-            $pusatLokasi = PusatLokasi::find($id);
+            $pusatLokasi = PusatLokasi::with('employees:id,full_name,nickname,employee_code')->find($id);
 
             if (! $pusatLokasi) {
-                Log::warning('Pusat lokasi not found: '.$id);
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Data pusat lokasi tidak ditemukan',
@@ -171,17 +163,16 @@ class PusatLokasiController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
+    // =========================================================================
+    // UPDATE
+    // =========================================================================
+
+    public function update(Request $request, int $id)
     {
         try {
-            Log::info('PUT Pusat Lokasi - ID: '.$id);
-            Log::info('Request data:', $request->all());
-
             $pusatLokasi = PusatLokasi::find($id);
 
             if (! $pusatLokasi) {
-                Log::warning('Pusat lokasi not found: '.$id);
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Data pusat lokasi tidak ditemukan',
@@ -189,14 +180,14 @@ class PusatLokasiController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
+                'company_id' => 'sometimes|exists:companies,id',
                 'nama_lokasi' => 'sometimes|required|string|max:255',
                 'titik_kordinat' => 'sometimes|required|string|max:100',
                 'keterangan' => 'nullable|string',
+                'is_active' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
-                Log::warning('Validasi gagal:', $validator->errors()->toArray());
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Validasi gagal',
@@ -205,28 +196,17 @@ class PusatLokasiController extends Controller
             }
 
             if ($request->has('titik_kordinat')) {
-                $kordinat = $request->titik_kordinat;
-                $parts = explode(',', $kordinat);
-
-                if (count($parts) != 2) {
+                if (! $this->validasiKordinat($request->titik_kordinat, $errorMsg)) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Format koordinat tidak valid. Gunakan format: lat,lng',
-                    ], 422);
-                }
-
-                $lat = trim($parts[0]);
-                $lng = trim($parts[1]);
-
-                if (! is_numeric($lat) || ! is_numeric($lng)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Koordinat harus berupa angka',
+                        'message' => $errorMsg,
                     ], 422);
                 }
             }
 
-            $pusatLokasi->update($request->only(['nama_lokasi', 'titik_kordinat', 'keterangan']));
+            $pusatLokasi->update(
+                $request->only(['company_id', 'nama_lokasi', 'titik_kordinat', 'keterangan', 'is_active'])
+            );
 
             Log::info('Pusat lokasi updated', ['id' => $pusatLokasi->id]);
 
@@ -246,20 +226,29 @@ class PusatLokasiController extends Controller
         }
     }
 
-    public function destroy($id)
+    // =========================================================================
+    // DESTROY
+    // =========================================================================
+
+    public function destroy(int $id)
     {
         try {
-            Log::info(' DELETE Pusat Lokasi - ID: '.$id);
-
             $pusatLokasi = PusatLokasi::find($id);
 
             if (! $pusatLokasi) {
-                Log::warning('⚠️ Pusat lokasi not found: '.$id);
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Data pusat lokasi tidak ditemukan',
                 ], 404);
+            }
+
+            // Cek apakah masih dipakai oleh karyawan
+            $jumlahKaryawan = $pusatLokasi->employees()->count();
+            if ($jumlahKaryawan > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Pusat lokasi tidak dapat dihapus karena masih digunakan oleh {$jumlahKaryawan} karyawan. Hapus relasi terlebih dahulu.",
+                ], 422);
             }
 
             $pusatLokasi->delete();
@@ -281,20 +270,19 @@ class PusatLokasiController extends Controller
         }
     }
 
+    // =========================================================================
+    // DESTROY MULTIPLE
+    // =========================================================================
+
     public function destroyMultiple(Request $request)
     {
         try {
-            Log::info('DELETE Multiple Pusat Lokasi');
-            Log::info('Request ids:', $request->all());
-
             $validator = Validator::make($request->all(), [
                 'ids' => 'required|array',
                 'ids.*' => 'required|integer|exists:pusat_lokasis,id',
             ]);
 
             if ($validator->fails()) {
-                Log::warning('Validasi gagal:', $validator->errors()->toArray());
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Validasi gagal',
@@ -302,12 +290,23 @@ class PusatLokasiController extends Controller
                 ], 422);
             }
 
+            // Cek apakah ada yang masih dipakai
+            $dipakai = PusatLokasi::whereIn('id', $request->ids)
+                ->withCount('employees')
+                ->having('employees_count', '>', 0)
+                ->pluck('nama_lokasi')
+                ->toArray();
+
+            if (! empty($dipakai)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Beberapa lokasi masih digunakan oleh karyawan: '.implode(', ', $dipakai),
+                ], 422);
+            }
+
             $count = PusatLokasi::whereIn('id', $request->ids)->delete();
 
-            Log::info('Multiple pusat lokasi deleted', [
-                'ids' => $request->ids,
-                'count' => $count,
-            ]);
+            Log::info('Multiple pusat lokasi deleted', ['ids' => $request->ids, 'count' => $count]);
 
             return response()->json([
                 'success' => true,
@@ -322,5 +321,129 @@ class PusatLokasiController extends Controller
                 'message' => 'Gagal menghapus data pusat lokasi',
             ], 500);
         }
+    }
+
+    public function bulkAssignEmployees(Request $request, int $id)
+    {
+        try {
+            $pusatLokasi = PusatLokasi::find($id);
+
+            if (! $pusatLokasi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data pusat lokasi tidak ditemukan',
+                ], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'employee_ids' => 'required|array|min:1',
+                'employee_ids.*' => 'integer|exists:employees,id',
+                'radius_meter' => 'nullable|integer|min:10|max:50000',
+                'keterangan' => 'nullable|string|max:255',
+                'overwrite' => 'nullable|boolean',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $radiusMeter = $request->input('radius_meter', 100);
+            $keterangan = $request->input('keterangan');
+            $overwrite = $request->boolean('overwrite', false);
+            $employeeIds = array_unique($request->input('employee_ids'));
+
+            if ($overwrite) {
+                \App\Models\EmployeePusatLokasi::where('pusat_lokasi_id', $pusatLokasi->id)->delete();
+            }
+
+            $now = now();
+            $rows = [];
+
+            foreach ($employeeIds as $employeeId) {
+                if (! $overwrite) {
+                    $exists = \App\Models\EmployeePusatLokasi::where('pusat_lokasi_id', $pusatLokasi->id)
+                        ->where('employee_id', $employeeId)
+                        ->exists();
+                    if ($exists) {
+                        continue;
+                    }
+                }
+
+                $rows[] = [
+                    'pusat_lokasi_id' => $pusatLokasi->id,
+                    'employee_id' => $employeeId,
+                    'radius_meter' => $radiusMeter,
+                    'keterangan' => $keterangan,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            if (! empty($rows)) {
+                \App\Models\EmployeePusatLokasi::insert($rows);
+            }
+
+            $totalAssigned = \App\Models\EmployeePusatLokasi::where('pusat_lokasi_id', $pusatLokasi->id)->count();
+            $newlyInserted = count($rows);
+            $skipped = count($employeeIds) - $newlyInserted;
+
+            Log::info('Bulk assign employees to pusat lokasi', [
+                'pusat_lokasi_id' => $pusatLokasi->id,
+                'newly_inserted' => $newlyInserted,
+                'skipped' => $skipped,
+                'total_assigned' => $totalAssigned,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$newlyInserted} karyawan berhasil di-assign ke {$pusatLokasi->nama_lokasi}".
+                                    ($skipped > 0 ? ", {$skipped} dilewati (sudah terdaftar)" : ''),
+                'total_assigned' => $totalAssigned,
+                'newly_inserted' => $newlyInserted,
+                'skipped' => $skipped,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error bulk assign employees: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal melakukan bulk assign',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // =========================================================================
+    // HELPER PRIVATE
+    // =========================================================================
+
+    /**
+     * Validasi format koordinat "lat,lng".
+     * Mengisi $errorMsg jika gagal.
+     */
+    private function validasiKordinat(string $kordinat, ?string &$errorMsg): bool
+    {
+        $parts = explode(',', $kordinat);
+
+        if (count($parts) !== 2) {
+            $errorMsg = 'Format koordinat tidak valid. Gunakan format: lat,lng (contoh: -7.797068,110.370529)';
+
+            return false;
+        }
+
+        [$lat, $lng] = [trim($parts[0]), trim($parts[1])];
+
+        if (! is_numeric($lat) || ! is_numeric($lng)) {
+            $errorMsg = 'Koordinat harus berupa angka';
+
+            return false;
+        }
+
+        return true;
     }
 }
