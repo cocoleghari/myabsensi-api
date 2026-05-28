@@ -41,6 +41,12 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user/profile', fn (Request $request) => $request->user());
+
+    // profil universal untuk semua role
+    Route::get('/user/profil', [AuthController::class, 'profile']);
+    Route::post('/user/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/user/upload-foto', [ProfilePhotoController::class, 'upload']);
+    Route::delete('/user/hapus-foto', [ProfilePhotoController::class, 'destroy']);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -137,11 +143,11 @@ Route::middleware(['auth:sanctum', 'role:employee'])->prefix('user')->group(func
         ]);
     });
 
-    Route::post('/change-password', [AuthController::class, 'changePassword']);
+    // Route::post('/change-password', [AuthController::class, 'changePassword']);
 
-    // Foto profil
-    Route::post('/upload-foto', [ProfilePhotoController::class, 'upload']);
-    Route::delete('/hapus-foto', [ProfilePhotoController::class, 'destroy']);
+    // // Foto profil
+    // Route::post('/upload-foto', [ProfilePhotoController::class, 'upload']);
+    // Route::delete('/hapus-foto', [ProfilePhotoController::class, 'destroy']);
 
     // Aktivitas
     Route::get('aktivitas', [AktivitasController::class, 'index']);
@@ -222,6 +228,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('/employees', [EmployeeController::class, 'store']);
     // Dropdown
     Route::get('/employees-dropdown', [EmployeeController::class, 'dropdown']);
+    Route::get('employees-dropdown-shift', [EmployeeController::class, 'dropdownShift']);
+    Route::get('employees-dropdown-lokasi', [EmployeeController::class, 'dropdownLokasi']);
 
     Route::get('/employees/export', [EmployeeExportImportController::class, 'export']);
     Route::get('/employees/import-template', [EmployeeExportImportController::class, 'downloadTemplate']);

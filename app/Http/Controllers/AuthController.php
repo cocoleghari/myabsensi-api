@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -136,7 +137,7 @@ class AuthController extends Controller
             }
 
             // Hapus token lama, buat token baru
-            $user->tokens()->delete();
+            // $user->tokens()->delete();
             $token = $user->createToken('auth_token')->plainTextToken;
 
             // Load data employee jika ada
@@ -518,74 +519,56 @@ class AuthController extends Controller
     {
         try {
             $user = $request->user();
-            $employee = $user->employee?->load(['department', 'position', 'company', 'status']);
+
+            // Load employee dengan relasi, support semua role
+            $employee = $user->employee()
+                ?->with([
+                    'department:id,name',
+                    'position:id,name',
+                    'company:id,name',
+                    'status:id,label',
+                ])
+                ->first();
+
+            $fotoWajahUrl = null;
+            if ($employee?->foto_wajah_path) {
+                $fotoWajahUrl = \Illuminate\Support\Facades\Storage::disk('public')
+                    ->url($employee->foto_wajah_path);
+            }
+
+            $photoUrl = $employee?->photo_url ?? null;
 
             return response()->json([
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'username' => $user->username,
                 'role' => $user->role,
                 'is_active' => $user->is_active,
                 'employee' => $employee ? [
-                    // ── Identitas ──
                     'id' => $employee->id,
                     'employee_code' => $employee->employee_code,
                     'nik' => $employee->nik,
                     'full_name' => $employee->full_name,
                     'nickname' => $employee->nickname,
-                    'photo_url' => $employee->photo_url,
-                    'foto_wajah_url' => $employee->foto_wajah_url,
+                    'photo_url' => $photoUrl,
+                    'foto_wajah_url' => $fotoWajahUrl,
                     'wajah_terdaftar' => $employee->wajah_terdaftar,
-
-                    // ── Data Pribadi ──
-                    'date_of_birth' => $employee->date_of_birth?->toDateString(),
-                    'place_of_birth' => $employee->place_of_birth,
-                    'gender' => $employee->gender,
-                    'phone' => $employee->phone,
-                    'address' => $employee->address,
-                    'city' => $employee->city,
-                    'province' => $employee->province,
-                    'postal_code' => $employee->postal_code,
-
-                    // ── Data Pribadi Lengkap ──
-                    'marital_status' => $employee->marital_status,
-                    'religion' => $employee->religion,
-                    'blood_type' => $employee->blood_type,
-                    'ktp_number' => $employee->ktp_number,
-
-                    // ── Kepegawaian ──
                     'department' => $employee->department?->name,
                     'position' => $employee->position?->name,
                     'company' => $employee->company?->name,
                     'company_id' => $employee->company_id,
-                    'status' => $employee->status?->name,
+                    'status' => $employee->status?->label,
                     'join_date' => $employee->join_date?->toDateString(),
                     'employment_type' => $employee->employment_type,
-                    'contract_end_date' => $employee->contract_end_date?->toDateString(),
-
-                    // ── Pendidikan ──
-                    'last_education' => $employee->last_education,
-                    'last_education_major' => $employee->last_education_major,
-                    'last_education_institution' => $employee->last_education_institution,
-
-                    // ── Kontak Darurat ──
-                    'emergency_contact_name' => $employee->emergency_contact_name,
-                    'emergency_contact_phone' => $employee->emergency_contact_phone,
-                    'emergency_contact_relation' => $employee->emergency_contact_relation,
-
-                    // ── Finansial & Legal ──
-                    'npwp' => $employee->npwp,
-                    'bpjs_kesehatan' => $employee->bpjs_kesehatan,
-                    'bpjs_ketenagakerjaan' => $employee->bpjs_ketenagakerjaan,
-                    'bank_name' => $employee->bank_name,
-                    'bank_account_number' => $employee->bank_account_number,
-                    'bank_account_name' => $employee->bank_account_name,
+                    'phone' => $employee->phone,
+                    'gender' => $employee->gender,
                 ] : null,
+                'foto_wajah_url' => $fotoWajahUrl,
+                'photo_url' => $photoUrl,
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Profile error: '.$e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Profile error: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,

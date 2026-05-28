@@ -7,17 +7,18 @@ use Illuminate\Http\Request;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, $role)
+    public function handle(Request $request, Closure $next, ...$roles)
     {
-        if (!$request->user()) {
+        if (! $request->user()) {
             return response()->json([
-                'message' => 'Unauthorized - Silahkan login terlebih dahulu'
+                'message' => 'Unauthorized - Silahkan login terlebih dahulu',
             ], 401);
         }
 
-        if ($request->user()->role !== $role) {
+        // Support multiple roles: 'role:admin,superadmin,hrd'
+        if (! in_array($request->user()->role, $roles)) {
             return response()->json([
-                'message' => 'Akses ditolak - Anda tidak memiliki hak akses sebagai ' . $role
+                'message' => 'Akses ditolak - Anda tidak memiliki hak akses',
             ], 403);
         }
 

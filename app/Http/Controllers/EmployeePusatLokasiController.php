@@ -31,8 +31,9 @@ class EmployeePusatLokasiController extends Controller
     {
         try {
             $query = EmployeePusatLokasi::with([
-                'employee:id,full_name,nickname,employee_code,nik',
-                'pusatLokasi:id,nama_lokasi,titik_kordinat,is_active',
+                // Hanya field minimal yang dibutuhkan Flutter
+                'employee:id,full_name,employee_code,photo_url',
+                'pusatLokasi:id,nama_lokasi',
             ]);
 
             if ($request->filled('employee_id')) {
@@ -43,14 +44,27 @@ class EmployeePusatLokasiController extends Controller
                 $query->where('pusat_lokasi_id', $request->pusat_lokasi_id);
             }
 
-            $data = $query->orderBy('employee_id')->get();
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->whereHas('employee', function ($q) use ($search) {
+                    $q->where('full_name', 'like', "%{$search}%")
+                        ->orWhere('employee_code', 'like', "%{$search}%");
+                });
+            }
 
-            Log::info('EmployeePusatLokasi index - total: '.$data->count());
+            // Paginate 100 per halaman
+            $perPage = (int) $request->get('per_page', 100);
+            $results = $query->orderBy('employee_id')->paginate($perPage);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data lokasi karyawan berhasil diambil',
-                'data' => $data,
+                'data' => $results->items(),
+                'meta' => [
+                    'current_page' => $results->currentPage(),
+                    'last_page' => $results->lastPage(),
+                    'per_page' => $results->perPage(),
+                    'total' => $results->total(),
+                ],
             ]);
 
         } catch (\Exception $e) {
@@ -58,7 +72,7 @@ class EmployeePusatLokasiController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data lokasi karyawan',
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

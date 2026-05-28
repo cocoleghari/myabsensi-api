@@ -10,19 +10,12 @@ class FaceRecognitionService
 {
     private string $pythonServiceUrl;
 
-    private float $threshold;
-
     public function __construct()
     {
         $this->pythonServiceUrl = config('services.face_recognition.url', 'http://localhost:8001');
-        $this->threshold = config('services.face_recognition.threshold', 0.6);
+        // threshold dihapus — keputusan verified sepenuhnya dari DeepFace/Python
     }
 
-    /**
-     * Bandingkan foto absen dengan foto referensi user.
-     *
-     * @return array{verified: bool, confidence: float, message: string}
-     */
     public function verify(string $fotoAbsenPath, string $fotoReferensiPath): array
     {
         try {
@@ -38,14 +31,22 @@ class FaceRecognitionService
             }
 
             $data = $response->json();
+            $verified = (bool) ($data['verified'] ?? false);      // ← dari DeepFace
             $confidence = (float) ($data['confidence'] ?? 0);
 
-            return [
-                'verified' => $confidence >= $this->threshold,
+            Log::info('Face recognition result', [
+                'verified' => $verified,
                 'confidence' => $confidence,
-                'message' => $confidence >= $this->threshold
+                'distance' => $data['distance'] ?? null,
+                'threshold' => $data['threshold'] ?? null,
+            ]);
+
+            return [
+                'verified' => $verified,
+                'confidence' => $confidence,
+                'message' => $verified
                     ? 'Wajah berhasil diverifikasi'
-                    : 'Wajah tidak cocok (confidence: '.round($confidence * 100).'%)',
+                    : 'Wajah tidak cocok ('.round($confidence * 100).'%)',
             ];
 
         } catch (\Exception $e) {
@@ -55,9 +56,6 @@ class FaceRecognitionService
         }
     }
 
-    /**
-     * Simpan foto wajah referensi user ke storage.
-     */
     public function saveFotoReferensi(UploadedFile $foto, int $userId): string
     {
         return $foto->storeAs('wajah_referensi', "user_{$userId}.jpg", 'local');
@@ -76,12 +74,13 @@ class FaceRecognitionService
             }
 
             $data = $response->json();
+            $verified = (bool) ($data['verified'] ?? false);      // ← dari DeepFace
             $confidence = (float) ($data['confidence'] ?? 0);
 
             return [
-                'verified' => $confidence >= $this->threshold,
+                'verified' => $verified,
                 'confidence' => $confidence,
-                'message' => $confidence >= $this->threshold
+                'message' => $verified
                     ? 'Wajah berhasil diverifikasi'
                     : 'Wajah tidak cocok ('.round($confidence * 100).'%)',
             ];

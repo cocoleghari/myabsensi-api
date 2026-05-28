@@ -106,8 +106,7 @@ class LaporanAbsensiController extends Controller
             ->with([
                 'employee:id,employee_code,full_name,nik,department_id,position_id',
                 'employee.department:id,name',
-                'employee.position:id,name,job_grade_id',
-                'employee.position.jobGrade:id,name,code',
+                'employee.position:id,name',
                 'pusatLokasi:id,nama_lokasi',
                 'shift:id,nama',
             ])
@@ -193,7 +192,7 @@ class LaporanAbsensiController extends Controller
 
             $sheet->setCellValue("A{$row}", $no++);
             $sheet->setCellValue("B{$row}", $rec->employee?->full_name ?? '-');
-            $sheet->setCellValue("C{$row}", $rec->employee?->position?->jobGrade?->name ?? '-');
+            $sheet->setCellValue("C{$row}", $rec->employee?->position?->name ?? '-');
             $sheet->setCellValue("D{$row}", $rec->employee?->department?->name ?? '-');
             $sheet->setCellValue("E{$row}", $tanggal->format('d/m/Y'));
             $sheet->setCellValue("F{$row}", $waktu);
@@ -306,7 +305,7 @@ class LaporanAbsensiController extends Controller
 
                 $sheet->setCellValue("A{$row}", $no++);
                 $sheet->setCellValue("B{$row}", $emp?->full_name ?? '-');
-                $sheet->setCellValue("C{$row}", $rec->employee?->position?->jobGrade?->name ?? '-');
+                $sheet->setCellValue("C{$row}", $rec->employee?->position?->name ?? '-');
                 $sheet->setCellValue("D{$row}", $emp?->department?->name ?? '-');
                 $sheet->setCellValue("E{$row}", $tgl->format('d/m/Y'));
                 $sheet->setCellValue("F{$row}", $jamMasuk);

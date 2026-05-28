@@ -308,6 +308,75 @@ class EmployeeController extends Controller
             ->header('Content-Length', strlen($data));
     }
 
+    public function dropdownShift()
+    {
+        $employees = Employee::select(
+            'id', 'employee_code', 'full_name', 'photo_url',
+            'department_id', 'position_id', 'job_grade_id'
+        )
+            ->with([
+                'position:id,name',
+                'jobGrade:id,name,code',
+            ])
+            ->orderBy('full_name')
+            ->get()
+            ->map(fn ($e) => [
+                'id' => $e->id,
+                'employee_code' => $e->employee_code,
+                'full_name' => $e->full_name,
+                'photo_url' => $e->photo_url,
+                'department_id' => $e->department_id,
+                'position' => $e->position
+                    ? ['id' => $e->position->id, 'name' => $e->position->name]
+                    : null,
+                'job_grade' => $e->jobGrade
+                    ? ['id' => $e->jobGrade->id, 'name' => $e->jobGrade->name, 'code' => $e->jobGrade->code]
+                    : null,
+            ]);
+
+        $data = json_encode(
+            ['data' => $employees],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE
+        );
+
+        return response($data, 200)
+            ->header('Content-Type', 'application/json; charset=utf-8');
+    }
+
+    public function dropdownLokasi()
+    {
+        $employees = Employee::select(
+            'id', 'employee_code', 'full_name', 'photo_url',
+            'department_id', 'position_id'
+        )
+            ->with([
+            'department:id,name',
+            'position:id,name',
+        ])
+            ->orderBy('full_name')
+            ->get()
+            ->map(fn ($e) => [
+            'id' => $e->id,
+            'employee_code' => $e->employee_code,
+            'full_name' => $e->full_name,
+            'photo_url' => $e->photo_url,
+            'department' => $e->department
+                ? ['id' => $e->department->id, 'name' => $e->department->name]
+                : null,
+            'position' => $e->position
+                ? ['id' => $e->position->id, 'name' => $e->position->name]
+                : null,
+        ]);
+
+        $data = json_encode(
+            ['data' => $employees],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE
+        );
+
+        return response($data, 200)
+            ->header('Content-Type', 'application/json; charset=utf-8');
+    }
+
     private function cleanString(?string $value): ?string
     {
         if ($value === null) {

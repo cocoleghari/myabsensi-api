@@ -26,35 +26,45 @@ class EmployeeShiftController extends Controller
             'shift:id,nama,kode,jam_masuk,jam_pulang,melewati_tengah_malam',
         ]);
 
-        // Filter per karyawan
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
         }
 
-        // Filter per shift
         if ($request->filled('shift_id')) {
             $query->where('shift_id', $request->shift_id);
         }
 
-        // Filter hanya yang aktif saat ini
+        // ── TAMBAH: filter search by nama/kode karyawan ──────────
+        if ($request->filled('search')) {
+            $search = $request->search;
+            // Pakai join lebih cepat dari whereHas subquery
+            $query->join('employees', 'employee_shifts.employee_id', '=', 'employees.id')
+                ->where(function ($q) use ($search) {
+                    $q->where('employees.full_name', 'like', "%{$search}%")
+                        ->orWhere('employees.employee_code', 'like', "%{$search}%");
+                })
+                ->select('employee_shifts.*'); // pastikan tidak ambiguous
+        }
+        // ─────────────────────────────────────────────────────────
+
         if ($request->filled('aktif')) {
             $aktif = filter_var($request->aktif, FILTER_VALIDATE_BOOLEAN);
             if ($aktif) {
-                $query->aktifPada(now()); // scope dari EmployeeShift model
+                $query->aktifPada(now());
             } else {
-                // Sudah berakhir: tanggal_selesai < hari ini
                 $query->whereNotNull('tanggal_selesai')
                     ->where('tanggal_selesai', '<', now()->toDateString());
             }
         }
 
-        $perPage = (int) $request->get('per_page', 30);
+        // ── Naikkan default per_page ke 1000 ─────────────────────
+        $perPage = (int) $request->get('per_page', 1000);
+        // ─────────────────────────────────────────────────────────
 
         $results = $query
             ->orderByDesc('tanggal_mulai')
             ->paginate($perPage);
 
-        // Flatten relasi agar Flutter mudah parsing
         $items = collect($results->items())->map(fn ($es) => $this->formatItem($es));
 
         return response()->json([
@@ -180,9 +190,11 @@ class EmployeeShiftController extends Controller
 
         $data = $validator->validated();
 
-        // Cek overlap kecuali diri sendiri
+        // Gunakan employee_id dari record yang ada, bukan dari request
+        $employeeId = $employeeShift->employee_id;
+
         $overlap = $this->cekOverlap(
-            employeeId: $data['employee_id'],
+            employeeId: $employeeId,
             tanggalMulai: $data['tanggal_mulai'],
             tanggalSelesai: $data['tanggal_selesai'] ?? null,
             ignoreId: $employeeShift->id,
@@ -376,16 +388,17 @@ class EmployeeShiftController extends Controller
      */
     private function rules(?int $ignoreId = null): array
     {
+        // Saat update (ignoreId tidak null), employee_id pakai 'sometimes'
+        $employeeIdRule = $ignoreId
+            ? ['sometimes', 'integer', Rule::exists('employees', 'id')->whereNull('deleted_at')]
+            : ['required', 'integer', Rule::exists('employees', 'id')->whereNull('deleted_at')];
+
         return [
-            'employee_id' => [
-                'required', 'integer',
-                Rule::exists('employees', 'id')->whereNull('deleted_at'),
-            ],
-            // shift_id ATAU pattern_id — salah satu wajib diisi
+            'employee_id' => $employeeIdRule,
+
             'shift_id' => [
                 'nullable', 'integer',
                 Rule::exists('shifts', 'id')->whereNull('deleted_at'),
-                // Wajib jika pattern_id kosong
                 Rule::requiredIf(fn () => ! request()->filled('pattern_id')),
             ],
             'pattern_id' => [
