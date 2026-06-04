@@ -196,7 +196,7 @@ class EmployeeExportImportController extends Controller
             ['label' => 'Kota',                                                     'required' => false],
             ['label' => 'Provinsi',                                                 'required' => false],
             ['label' => 'Kode Pos',                                                 'required' => false],
-            ['label' => 'Tipe Kepegawaian (permanent/contract/intern/freelance)*',  'required' => true],
+            ['label' => 'Tipe Kepegawaian (permanent/contract/intern/freelance/evaluation)*',  'required' => true],
             ['label' => 'Tanggal Bergabung (YYYY-MM-DD)',                           'required' => false],
             ['label' => 'Akhir Kontrak (YYYY-MM-DD)',                               'required' => false],
             ['label' => 'NPWP',                                                     'required' => false],
@@ -298,7 +298,7 @@ class EmployeeExportImportController extends Controller
                 $fullName = $get($row, 'Nama Lengkap*');
                 $nik = $get($row, 'NIK (Internal)*');
                 $gender = $get($row, 'Jenis Kelamin (male/female)*');
-                $employmentType = $get($row, 'Tipe Kepegawaian (permanent/contract/intern/freelance)*');
+                $employmentType = $get($row, 'Tipe Kepegawaian (permanent/contract/intern/freelance/evaluation)*');
 
                 $companyId = $this->resolveId(Company::class, $get($row, 'ID Perusahaan'));
                 $departmentId = $this->resolveId(Department::class, $get($row, 'ID Departemen'));
@@ -312,7 +312,7 @@ class EmployeeExportImportController extends Controller
                         'fullName' => 'required|string|max:200',
                         'nik' => ['required', 'string', Rule::unique('employees', 'nik')],
                         'gender' => ['required', Rule::in(['male', 'female'])],
-                        'employmentType' => ['required', Rule::in(['permanent', 'contract', 'intern', 'freelance'])],
+                        'employmentType' => ['required', Rule::in(['permanent', 'contract', 'intern', 'freelance', 'evaluation'])],
                         'companyId' => 'required|integer',
                     ],
                     [

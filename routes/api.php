@@ -161,8 +161,8 @@ Route::middleware(['auth:sanctum', 'role:employee'])->prefix('user')->group(func
 
     // List Karyawan
     Route::get('/karyawan', [UserController::class, 'index']);
-    Route::get('/jabatan-list', [UserController::class, 'jabatanList']);
-    Route::get('/kantor-list', [UserController::class, 'kantorList']);
+    // Route::get('/jabatan-list', [UserController::class, 'jabatanList']);
+    // Route::get('/kantor-list', [UserController::class, 'kantorList']);
     Route::get('/karyawan/{id}', [UserController::class, 'show']);
 
     // Notifikasi
