@@ -249,9 +249,13 @@ class EmployeeExportImportController extends Controller
 
     public function import(Request $request)
     {
+        ini_set('memory_limit', '256M');  // ← tambah ini
+
         $request->validate(['file' => 'required|file|mimes:xlsx,xls|max:5120']);
 
-        $spreadsheet = IOFactory::load($request->file('file')->getPathname());
+        $reader = IOFactory::createReaderForFile($request->file('file')->getPathname());
+        $reader->setReadDataOnly(true);
+        $spreadsheet = $reader->load($request->file('file')->getPathname());
         $sheet = $spreadsheet->getActiveSheet();
         $highestRow = $sheet->getHighestDataRow();
         $highestCol = $sheet->getHighestDataColumn();
