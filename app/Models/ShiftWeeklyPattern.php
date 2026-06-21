@@ -36,6 +36,11 @@ class ShiftWeeklyPattern extends Model
             ->orderBy('hari');
     }
 
+    public function employeeShifts(): HasMany
+    {
+        return $this->hasMany(EmployeeShift::class, 'pattern_id');
+    }
+
     // -------------------------------------------------------------------------
     // Helper: ambil Shift yang berlaku pada tanggal tertentu
     // Return null jika hari itu libur atau tidak ada konfigurasi

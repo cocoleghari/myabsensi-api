@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Employee extends Model
 {
@@ -172,5 +173,10 @@ class Employee extends Model
         $end = $this->resign_date ?? now();
 
         return (int) $this->join_date->diffInMonths($end);
+    }
+
+    public function getFotoWajahUrlAttribute(): ?string
+    {
+        return $this->foto_wajah_path ? Storage::disk('public')->url($this->foto_wajah_path) : null;
     }
 }

@@ -1,30 +1,308 @@
 @extends('layouts.admin')
+
 @section('title', 'List Akun')
+
 @section('content')
-<div class="bg-white rounded-xl shadow-sm p-6">
-    <h3 class="text-base font-semibold text-gray-800 mb-4">List Akun</h3>
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead><tr class="border-b border-gray-200">
-                <th class="text-left py-3 px-4 text-gray-500 font-medium">Nama</th>
-                <th class="text-left py-3 px-4 text-gray-500 font-medium">Email</th>
-                <th class="text-left py-3 px-4 text-gray-500 font-medium">Role</th>
-                <th class="text-left py-3 px-4 text-gray-500 font-medium">Status</th>
-            </tr></thead>
-            <tbody>
-            @forelse($users as $user)
-            <tr class="border-b border-gray-100 hover:bg-gray-50">
-                <td class="py-3 px-4 font-medium text-gray-800">{{ $user->name }}</td>
-                <td class="py-3 px-4 text-gray-600">{{ $user->email }}</td>
-                <td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-medium {{ $user->role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700' }}">{{ $user->role }}</span></td>
-                <td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-medium {{ $user->is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">{{ $user->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
-            </tr>
-            @empty
-            <tr><td colspan="4" class="py-8 text-center text-gray-400">Tidak ada data</td></tr>
-            @endforelse
-            </tbody>
-        </table>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+    @if (session('success'))
+        <div id="toast-success"
+            class="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white border border-emerald-100 shadow-xl rounded-xl px-5 py-3.5 text-[13px] font-medium text-emerald-700"
+            style="animation: slideDown 0.3s ease-out;">
+            <svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div id="toast-error"
+            class="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white border border-rose-100 shadow-xl rounded-xl px-5 py-3.5 text-[13px] font-medium text-rose-700"
+            style="animation: slideDown 0.3s ease-out;">
+            <svg class="w-5 h-5 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ session('error') }}
+        </div>
+    @endif
+
+    <div class="flex items-center justify-between mb-6 gap-3">
+        <div class="min-w-0">
+            <h3 class="text-base font-bold text-gray-800">List Akun</h3>
+            <p class="text-[13px] text-gray-400 mt-1 font-medium">Total {{ $users->total() }} akun terdaftar</p>
+        </div>
+        <a href="{{ route('admin.list-akun.create') }}"
+            class="flex items-center gap-2 px-4 py-3 rounded-xl text-[13.5px] font-semibold text-white shadow-[0_4px_14px_rgba(249,115,22,0.35)] hover:opacity-90 transition-opacity flex-shrink-0"
+            style="background:linear-gradient(135deg, #f97316 0%, #ea580c 100%)">
+            <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span class="hidden sm:inline">Tambah Akun</span>
+            <span class="sm:hidden">Tambah</span>
+        </a>
     </div>
-    <div class="mt-4">{{ $users->links() }}</div>
-</div>
+
+    {{-- Filter --}}
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 mb-5 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
+        <form method="GET" action="{{ route('admin.list-akun.index') }}" class="flex flex-wrap items-center gap-3.5">
+            <div class="relative flex-1 min-w-[220px]">
+                <svg class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..."
+                    class="w-full pl-11 pr-4 py-3 text-[13.5px] border border-gray-200 rounded-xl focus:outline-none focus:border-orange-400 focus:ring-3 focus:ring-orange-50 transition-all">
+            </div>
+
+            <select name="role" class="filter-select text-[13.5px] border border-gray-200 rounded-xl px-4 py-3">
+                <option value="">Semua Role</option>
+                @foreach (['employee' => 'Employee', 'hrd' => 'HRD', 'manager' => 'Manager', 'admin' => 'Admin'] as $v => $l)
+                    <option value="{{ $v }}" {{ request('role') == $v ? 'selected' : '' }}>{{ $l }}
+                    </option>
+                @endforeach
+            </select>
+
+            <select name="status" class="filter-select text-[13.5px] border border-gray-200 rounded-xl px-4 py-3">
+                <option value="">Semua Status</option>
+                <option value="aktif" {{ request('status') == 'aktif' ? 'selected' : '' }}>Aktif</option>
+                <option value="nonaktif" {{ request('status') == 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
+            </select>
+
+            <button type="submit"
+                class="text-[13.5px] font-semibold px-5 py-3 rounded-xl text-white hover:opacity-90 transition-opacity shadow-sm"
+                style="background:#0f2d6b">
+                Filter
+            </button>
+
+            @if (request()->anyFilled(['search', 'role', 'status']))
+                <a href="{{ route('admin.list-akun.index') }}"
+                    class="text-[13px] text-gray-400 hover:text-gray-600 transition-colors font-medium">Reset</a>
+            @endif
+        </form>
+    </div>
+
+    {{-- Table --}}
+    <div class="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-100 bg-gray-50/70">
+                        <th class="text-left px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nama
+                        </th>
+                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Email
+                        </th>
+                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Role
+                        </th>
+                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Status
+                        </th>
+                        <th class="text-right px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Aksi
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($users as $user)
+                        <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
+                            <td class="px-6 py-4 font-medium text-gray-800">{{ $user->name }}</td>
+                            <td class="px-4 py-4 text-gray-600">{{ $user->email ?? '-' }}</td>
+                            <td class="px-4 py-4">
+                                <span
+                                    class="px-2.5 py-1 rounded-full text-[11.5px] font-semibold {{ $user->role === 'admin' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
+                                    {{ ucfirst($user->role) }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-4">
+                                @if ($user->is_active)
+                                    <span
+                                        class="px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-emerald-50 text-emerald-700">Aktif</span>
+                                @else
+                                    <span
+                                        class="px-2.5 py-1 rounded-full text-[11.5px] font-semibold bg-gray-100 text-gray-500">Nonaktif</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('admin.list-akun.edit', $user->id) }}"
+                                        class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-blue-600 hover:border-blue-200 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </a>
+                                    @if ($user->id !== auth()->id())
+                                        <form method="POST" action="{{ route('admin.list-akun.destroy', $user->id) }}"
+                                            class="delete-akun-form">
+                                            @csrf @method('DELETE')
+                                            <button type="submit"
+                                                class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-rose-600 hover:border-rose-200 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="py-12 text-center text-gray-400">Tidak ada data akun</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if ($users->hasPages())
+            <div class="px-6 py-4 border-t border-gray-100">
+                {{ $users->links() }}
+            </div>
+        @endif
+    </div>
+
+    {{-- Modal Delete --}}
+    <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6 text-center"
+            style="animation: popIn 0.2s ease-out;">
+            <div class="w-14 h-14 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            <h3 class="text-[15px] font-bold text-gray-800 mb-1.5">Hapus Akun?</h3>
+            <p class="text-[13px] text-gray-400 mb-6">Akun yang sudah dihapus tidak dapat dikembalikan.</p>
+            <div class="flex gap-3">
+                <button type="button" id="delete-cancel-btn"
+                    class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
+                    Batal
+                </button>
+                <button type="button" id="delete-confirm-btn"
+                    class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
+                    style="background:#e11d48">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .filter-select-wrapper {
+            margin-bottom: 0 !important;
+            width: 180px;
+            flex-shrink: 0;
+        }
+
+        .filter-select-wrapper .choices__inner {
+            border: 1px solid #E5E7EB !important;
+            border-radius: 12px !important;
+            padding: 10px 16px !important;
+            font-size: 13.5px !important;
+            background: #fff !important;
+            min-height: 46px;
+            margin: 0 !important;
+        }
+
+        .filter-select-wrapper.is-focused .choices__inner {
+            border-color: #fb923c !important;
+        }
+
+        .filter-select-wrapper .choices__list--dropdown {
+            border-radius: 12px !important;
+            font-size: 13.5px !important;
+        }
+
+        .filter-select-wrapper .choices__list--dropdown .choices__item--selectable.is-highlighted {
+            background-color: #fff7ed !important;
+            color: #ea580c !important;
+        }
+    </style>
+
+    <script>
+        ['toast-success', 'toast-error'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                setTimeout(function() {
+                    el.style.transition = 'opacity 0.3s, transform 0.3s';
+                    el.style.opacity = '0';
+                    el.style.transform = 'translate(-50%, -15px)';
+                    setTimeout(function() {
+                        el.remove();
+                    }, 300);
+                }, 3000);
+            }
+        });
+
+        document.querySelectorAll('.filter-select').forEach(function(el) {
+            var choice = new Choices(el, {
+                searchEnabled: true,
+                itemSelectText: '',
+                shouldSort: false
+            });
+            choice.containerOuter.element.classList.add('filter-select-wrapper');
+        });
+
+        (function() {
+            var modal = document.getElementById('delete-modal');
+            var cancelBtn = document.getElementById('delete-cancel-btn');
+            var confirmBtn = document.getElementById('delete-confirm-btn');
+            var activeForm = null;
+
+            document.querySelectorAll('.delete-akun-form').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    activeForm = form;
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                });
+            });
+
+            cancelBtn.addEventListener('click', function() {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                activeForm = null;
+            });
+
+            confirmBtn.addEventListener('click', function() {
+                if (activeForm) activeForm.submit();
+            });
+
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    activeForm = null;
+                }
+            });
+        })();
+    </script>
 @endsection

@@ -42,6 +42,11 @@ class JobGrade extends Model
         return $this->hasMany(Position::class);
     }
 
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class, 'job_grade_id');
+    }
+
     // -------------------------------------------------------------------------
     // Scopes
     // -------------------------------------------------------------------------

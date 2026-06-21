@@ -1,30 +1,30 @@
 <?php
 
-use App\Http\Controllers\AdminAbsensiController;
-use App\Http\Controllers\AktivitasController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\CompanyController;
-use App\Http\Controllers\DepartmentController;
-use App\Http\Controllers\EmployeeController;  // ← BARU (ganti LokasiController)
-use App\Http\Controllers\EmployeeExportImportController;
-use App\Http\Controllers\EmployeePusatLokasiController;
-use App\Http\Controllers\EmployeeShiftController;
-use App\Http\Controllers\EmployeeStatusController;
-use App\Http\Controllers\JobGradeController;
-use App\Http\Controllers\JobLevelController;
-use App\Http\Controllers\LaporanAbsensiController;
-use App\Http\Controllers\LaporanAktivitasController;
-use App\Http\Controllers\NotificationUserController;
-use App\Http\Controllers\PermintaanAbsenController;
-use App\Http\Controllers\PositionController;
-use App\Http\Controllers\ProfilePhotoController;
-use App\Http\Controllers\PusatLokasiController;
-use App\Http\Controllers\PusatLokasiExportImportController;
-use App\Http\Controllers\ShiftController;
-use App\Http\Controllers\ShiftWeeklyPatternController;
-use App\Http\Controllers\TipeAktivitasController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\UserLokasiController;
+use App\Http\Controllers\Mobile\AdminAbsensiController;
+use App\Http\Controllers\Mobile\AktivitasController;
+use App\Http\Controllers\Mobile\AuthController;
+use App\Http\Controllers\Mobile\CompanyController;
+use App\Http\Controllers\Mobile\DepartmentController;
+use App\Http\Controllers\Mobile\EmployeeController;  // ← BARU (ganti LokasiController)
+use App\Http\Controllers\Mobile\EmployeeExportImportController;
+use App\Http\Controllers\Mobile\EmployeePusatLokasiController;
+use App\Http\Controllers\Mobile\EmployeeShiftController;
+use App\Http\Controllers\Mobile\EmployeeStatusController;
+use App\Http\Controllers\Mobile\JobGradeController;
+use App\Http\Controllers\Mobile\JobLevelController;
+use App\Http\Controllers\Mobile\LaporanAbsensiController;
+use App\Http\Controllers\Mobile\LaporanAktivitasController;
+use App\Http\Controllers\Mobile\NotificationUserController;
+use App\Http\Controllers\Mobile\PermintaanAbsenController;
+use App\Http\Controllers\Mobile\PositionController;
+use App\Http\Controllers\Mobile\ProfilePhotoController;
+use App\Http\Controllers\Mobile\PusatLokasiController;
+use App\Http\Controllers\Mobile\PusatLokasiExportImportController;
+use App\Http\Controllers\Mobile\ShiftController;
+use App\Http\Controllers\Mobile\ShiftWeeklyPatternController;
+use App\Http\Controllers\Mobile\TipeAktivitasController;
+use App\Http\Controllers\Mobile\UserController;
+use App\Http\Controllers\Mobile\UserLokasiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;                  // ← BARU (dipakai di closure /profil)
