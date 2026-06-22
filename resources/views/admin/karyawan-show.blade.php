@@ -12,11 +12,11 @@
             <span class="text-gray-600 font-medium">{{ $karyawan->full_name }}</span>
         </div>
 
-        <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
+        <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
             <div class="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
                 <div class="flex items-center gap-4">
                     <div
-                        class="w-14 h-14 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                        class="w-12 h-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-lg flex-shrink-0">
                         {{ strtoupper(substr($karyawan->full_name, 0, 2)) }}
                     </div>
                     <div>
@@ -26,7 +26,7 @@
                     </div>
                 </div>
                 <a href="{{ route('admin.karyawan.edit', $karyawan->id) }}"
-                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white hover:opacity-90 transition-opacity"
+                    class="flex items-center gap-2 px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white hover:opacity-90 transition-opacity"
                     style="background:linear-gradient(135deg, #f97316 0%, #ea580c 100%)">
                     Edit
                 </a>

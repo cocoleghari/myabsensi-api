@@ -78,7 +78,7 @@
                     <button type="submit"
                         class="w-full flex items-center justify-center gap-2 text-[13px] font-semibold px-5 py-3 rounded-xl text-white transition-opacity hover:opacity-90 shadow-sm"
                         style="background:#f97316">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
                         Simpan Assignment
@@ -173,10 +173,10 @@
     <style>
         .form-label {
             display: block;
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 500;
             color: #4B5563;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .form-input {
@@ -184,7 +184,7 @@
             font-size: 12px;
             border: 1px solid #E5E7EB;
             border-radius: 10px;
-            padding: 10px 13px;
+            padding: 8px 11px;
             outline: none;
             transition: border-color .15s, box-shadow .15s;
             background: #fff;
@@ -281,7 +281,7 @@
                     '<input type="checkbox" data-id="' + emp.id + '" ' + checked +
                     ' class="employee-checkbox w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400">' +
                     '<div class="flex-1 min-w-0">' +
-                    '<p class="text-[13.5px] font-medium text-gray-800">' + emp.full_name + '</p>' +
+                    '<p class="text-[13px] font-medium text-gray-800">' + emp.full_name + '</p>' +
                     '<p class="text-[12px] text-gray-400">' + emp.position_name + ' · ' + emp.department_name + '</p>' +
                     '</div>' + badge;
 

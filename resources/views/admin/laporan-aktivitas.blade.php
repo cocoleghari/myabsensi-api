@@ -13,8 +13,8 @@
 
     <div class="flex items-center justify-between mb-6 gap-3">
         <div class="min-w-0">
-            <h3 class="text-base font-bold text-gray-800">Laporan Aktivitas</h3>
-            <p class="text-[13px] text-gray-400 mt-1 font-medium">Total {{ $aktivitas->total() }} record aktivitas</p>
+            <h3 class="text-sm font-bold text-gray-800">Laporan Aktivitas</h3>
+            <p class="text-[11.5px] text-gray-400 mt-1 font-medium">Total {{ $aktivitas->total() }} record aktivitas</p>
         </div>
         <div class="flex gap-2 flex-shrink-0">
             <a href="{{ route('admin.laporan-aktivitas.export', array_merge(request()->query(), ['tanggal_mulai' => $tanggalMulai, 'tanggal_selesai' => $tanggalSelesai, 'format' => 'detail'])) }}"
@@ -36,24 +36,24 @@
     </div>
 
     {{-- Filter --}}
-    <div class="bg-white border border-gray-100 rounded-2xl p-5 mb-5 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
-        <form method="GET" action="{{ route('admin.laporan-aktivitas') }}" class="flex flex-wrap items-center gap-3.5">
+    <div class="bg-white border border-gray-100 rounded-2xl p-4 mb-4 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
+        <form method="GET" action="{{ route('admin.laporan-aktivitas') }}" class="flex flex-wrap items-center gap-2.5">
             <div class="relative flex-1 min-w-[200px]">
-                <svg class="w-[18px] h-[18px] absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" fill="none"
+                <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" fill="none"
                     stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau NIK..."
-                    class="w-full pl-11 pr-4 py-3 text-[13.5px] border border-gray-200 rounded-xl focus:outline-none focus:border-orange-400 focus:ring-3 focus:ring-orange-50 transition-all">
+                    class="w-full pl-10 pr-4 py-2 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-50 transition-all">
             </div>
 
             <input type="date" name="tanggal_mulai" value="{{ $tanggalMulai }}"
-                class="text-[13.5px] border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400 transition-all">
+                class="text-[12.5px] border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-orange-400 transition-all">
             <input type="date" name="tanggal_selesai" value="{{ $tanggalSelesai }}"
-                class="text-[13.5px] border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400 transition-all">
+                class="text-[12.5px] border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-orange-400 transition-all">
 
-            <select name="department_id" class="filter-select text-[13.5px] border border-gray-200 rounded-xl px-4 py-3">
+            <select name="department_id" class="filter-select text-[12.5px] border border-gray-200 rounded-xl px-3 py-2">
                 <option value="">Semua Departemen</option>
                 @foreach ($departments as $dept)
                     <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>
@@ -63,7 +63,7 @@
             </select>
 
             <select name="tipe_aktivitas_id"
-                class="filter-select text-[13.5px] border border-gray-200 rounded-xl px-4 py-3">
+                class="filter-select text-[12.5px] border border-gray-200 rounded-xl px-3 py-2">
                 <option value="">Semua Tipe</option>
                 @foreach ($tipeAktivitasList as $tipe)
                     <option value="{{ $tipe->id }}" {{ request('tipe_aktivitas_id') == $tipe->id ? 'selected' : '' }}>
@@ -73,14 +73,14 @@
             </select>
 
             <button type="submit"
-                class="text-[13.5px] font-semibold px-5 py-3 rounded-xl text-white hover:opacity-90 transition-opacity shadow-sm"
+                class="text-[12.5px] font-semibold px-4 py-2 rounded-xl text-white hover:opacity-90 transition-opacity shadow-sm"
                 style="background:#0f2d6b">
                 Filter
             </button>
 
             @if (request()->anyFilled(['search', 'department_id', 'tipe_aktivitas_id']))
                 <a href="{{ route('admin.laporan-aktivitas') }}"
-                    class="text-[13px] text-gray-400 hover:text-gray-600 transition-colors font-medium">Reset</a>
+                    class="text-[12px] text-gray-400 hover:text-gray-600 transition-colors font-medium">Reset</a>
             @endif
         </form>
     </div>
@@ -91,23 +91,23 @@
             <table class="w-full">
                 <thead>
                     <tr class="border-b border-gray-100 bg-gray-50/70">
-                        <th class="text-left px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                             Karyawan</th>
-                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Tipe
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tipe
                         </th>
-                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Tugas
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tugas
                         </th>
-                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Tujuan
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tujuan
                         </th>
-                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Mulai
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mulai
                         </th>
-                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                             Berakhir</th>
-                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Durasi
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Durasi
                         </th>
-                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                             Koordinat</th>
-                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Foto
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Foto
                         </th>
                     </tr>
                 </thead>
@@ -123,13 +123,13 @@
                             $firstFoto = $item->fotos->first();
                         @endphp
                         <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
-                            <td class="px-6 py-4">
-                                <p class="text-[13.5px] font-semibold text-gray-800">
+                            <td class="px-4 py-3">
+                                <p class="text-[13px] font-semibold text-gray-800">
                                     {{ $item->employee?->full_name ?? '-' }}</p>
-                                <p class="text-[12px] text-gray-400 mt-0.5">
+                                <p class="text-[11px] text-gray-400 mt-0.5">
                                     {{ $item->employee?->department?->name ?? '-' }}</p>
                             </td>
-                            <td class="px-4 py-4">
+                            <td class="px-4 py-3">
                                 <span
                                     class="text-[11.5px] px-3 py-1.5 rounded-full font-semibold bg-violet-50 text-violet-700">
                                     {{ $item->tipeAktivitas?->nama ?? '-' }}
@@ -154,7 +154,7 @@
                                     <span class="text-gray-400">-</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-4">
+                            <td class="px-4 py-3">
                                 @if ($firstFoto)
                                     <div class="relative inline-block">
                                         <img src="{{ $firstFoto->foto_url }}" alt="Foto Aktivitas"
@@ -175,7 +175,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-4 py-12 text-center text-[13.5px] text-gray-400">Tidak ada data
+                            <td colspan="9" class="px-4 py-12 text-center text-[13px] text-gray-400">Tidak ada data
                                 aktivitas pada periode ini</td>
                         </tr>
                     @endforelse
@@ -184,7 +184,7 @@
         </div>
 
         @if ($aktivitas->hasPages())
-            <div class="px-6 py-4 border-t border-gray-100">
+            <div class="px-4 py-3 border-t border-gray-100">
                 {{ $aktivitas->links() }}
             </div>
         @endif
@@ -227,17 +227,17 @@
 
         .filter-select-wrapper {
             margin-bottom: 0 !important;
-            width: 200px;
+            width: 180px;
             flex-shrink: 0;
         }
 
         .filter-select-wrapper .choices__inner {
             border: 1px solid #E5E7EB !important;
             border-radius: 12px !important;
-            padding: 10px 16px !important;
-            font-size: 13.5px !important;
+            padding: 7px 12px !important;
+            font-size: 12.5px !important;
             background: #fff !important;
-            min-height: 46px;
+            min-height: 38px;
             margin: 0 !important;
         }
 
@@ -247,7 +247,7 @@
 
         .filter-select-wrapper .choices__list--dropdown {
             border-radius: 12px !important;
-            font-size: 13.5px !important;
+            font-size: 12.5px !important;
         }
 
         .filter-select-wrapper .choices__list--dropdown .choices__item--selectable.is-highlighted {

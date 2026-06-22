@@ -26,7 +26,7 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
 
-        /* ===== BACKGROUND FULL LAYAR ===== */
+        /* ===== BACKGROUND ===== */
         .bg-fullscreen {
             position: fixed;
             inset: 0;
@@ -46,75 +46,80 @@
             inset: 0;
             z-index: 1;
             display: flex;
-            align-items: stretch;
+            align-items: center;
             justify-content: flex-end;
-            padding: 2.5rem 6vw 2.5rem 0;
-            /* jarak atas bawah 1.5rem */
+            padding: 1.25rem 4vw 1.25rem 0;
         }
 
+        /* ===== FORM CARD ===== */
         .form-card {
-            width: 550px;
+            width: 440px;
+            max-height: calc(100vh - 2.5rem);
+            overflow-y: auto;
             background: #ffffff;
             border-radius: 16px;
-            /* tetap ada radius tapi tidak terpotong */
-            padding: 3rem 2.75rem;
+            padding: 1.75rem 2.25rem;
             box-shadow: 0 4px 32px rgba(0, 0, 0, 0.10);
             display: flex;
             flex-direction: column;
             justify-content: center;
+
+            /* Sembunyikan scrollbar tapi tetap bisa scroll */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .form-card::-webkit-scrollbar {
+            display: none;
         }
 
         /* ===== LOGO ===== */
         .card-logo {
             text-align: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
 
         .card-logo img {
-            height: 180px;
+            height: 110px;
             width: auto;
             display: block;
-            margin: 0 auto 0px;
-        }
-
-        .card-logo .brand-text span {
-            color: #F97316;
+            margin: 0 auto;
         }
 
         .card-logo .tagline {
-            font-size: 20px;
+            font-size: 16px;
             color: #010102;
-            margin: 0;
+            margin: 0.25rem 0 0;
         }
 
         /* ===== DIVIDER ===== */
         .card-divider {
             border: none;
             border-top: 1px solid #f0f0f0;
-            margin: 0 0 1.5rem;
+            margin: 0 0 1rem;
         }
 
         /* ===== LABEL ===== */
         .lf-label {
             display: block;
-            font-size: 13.5px;
+            font-size: 12.5px;
             font-weight: 500;
             color: #374151;
-            margin-bottom: 7px;
+            margin-bottom: 5px;
         }
 
         /* ===== INPUT WRAP ===== */
         .lf-input-wrap {
             position: relative;
-            margin-bottom: 1.1rem;
+            margin-bottom: 0.85rem;
         }
 
         .lf-input-wrap .icon-left {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            left: 14px;
-            font-size: 16px;
+            left: 12px;
+            font-size: 15px;
             color: #93a3b8;
             pointer-events: none;
         }
@@ -123,8 +128,8 @@
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            right: 14px;
-            font-size: 16px;
+            right: 12px;
+            font-size: 15px;
             color: #93a3b8;
             background: none;
             border: none;
@@ -140,8 +145,8 @@
             background: #eef2fb;
             border: 1.5px solid #e2e8f4;
             border-radius: 10px;
-            padding: 0.88rem 1rem 0.88rem 2.6rem;
-            font-size: 14px;
+            padding: 0.65rem 1rem 0.65rem 2.4rem;
+            font-size: 13.5px;
             color: #1e293b;
             outline: none;
             transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
@@ -155,11 +160,11 @@
 
         .lf-input::placeholder {
             color: #a0aec0;
-            font-size: 13.5px;
+            font-size: 13px;
         }
 
         .lf-input.has-eye {
-            padding-right: 2.75rem;
+            padding-right: 2.5rem;
         }
 
         /* ===== REMEMBER & LUPA ===== */
@@ -167,28 +172,27 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 1.4rem;
+            margin-bottom: 1rem;
         }
 
         .lf-remember {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 13.5px;
+            gap: 7px;
+            font-size: 12.5px;
             color: #6b7280;
             cursor: pointer;
         }
 
         .lf-remember input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             accent-color: #1a4fd6;
             cursor: pointer;
-            border-radius: 4px;
         }
 
         .lf-forgot {
-            font-size: 13.5px;
+            font-size: 12.5px;
             font-weight: 600;
             color: #F97316;
             text-decoration: none;
@@ -201,16 +205,16 @@
             color: #fff;
             border: none;
             border-radius: 10px;
-            padding: 1rem;
-            font-size: 15px;
+            padding: 0.75rem;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 7px;
             transition: background 0.2s;
-            margin-bottom: 1.1rem;
+            margin-bottom: 0.85rem;
             letter-spacing: 0.03em;
         }
 
@@ -222,8 +226,8 @@
         .lf-divider {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 1.1rem;
+            gap: 10px;
+            margin-bottom: 0.85rem;
         }
 
         .lf-divider div {
@@ -232,7 +236,7 @@
         }
 
         .lf-divider span {
-            font-size: 13px;
+            font-size: 12px;
             color: #9ca3af;
         }
 
@@ -242,16 +246,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 9px;
             border: 1.5px solid #e2e8f4;
             border-radius: 10px;
-            padding: 0.88rem;
-            font-size: 14px;
+            padding: 0.65rem;
+            font-size: 13.5px;
             color: #374151;
             background: #fff;
             cursor: pointer;
             transition: background 0.2s;
-            font-weight: 400;
         }
 
         .lf-google:hover {
@@ -264,31 +267,28 @@
             border: 1px solid #fecaca;
             color: #dc2626;
             border-radius: 10px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 1rem;
-            font-size: 13px;
+            padding: 0.6rem 0.85rem;
+            margin-bottom: 0.85rem;
+            font-size: 12.5px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
         }
 
         /* ===== FOOTER ===== */
         .lf-footer {
             text-align: center;
-            font-size: 11.5px;
+            font-size: 11px;
             color: #c4c9d4;
-            margin-top: 1.25rem;
+            margin-top: 1rem;
         }
 
-        /* ===== RESPONSIVE ===== */
+        /* ===== RESPONSIVE MOBILE ===== */
         @media (max-width: 767px) {
-
-            /* Sembunyikan background di mobile */
             .bg-fullscreen {
                 display: none;
             }
 
-            /* Wrapper jadi normal flow, bukan fixed */
             .page-wrapper {
                 position: relative;
                 inset: auto;
@@ -300,24 +300,58 @@
                 background: #fff;
             }
 
-            /* Form card full layar di mobile */
             .form-card {
                 width: 100%;
                 max-width: 100%;
+                max-height: none;
                 min-height: 100vh;
                 border-radius: 0;
                 box-shadow: none;
-                padding: 2.5rem 1.75rem;
+                padding: 2rem 1.5rem;
                 justify-content: center;
             }
 
-            /* Perkecil logo di mobile */
             .card-logo img {
-                height: 100px;
+                height: 80px;
             }
 
             .card-logo .tagline {
-                font-size: 14px;
+                font-size: 13px;
+            }
+        }
+
+        /* ===== LAYAR SANGAT PENDEK (misal 768px height) ===== */
+        @media (max-height: 800px) {
+            .card-logo img {
+                height: 80px;
+            }
+
+            .card-logo {
+                margin-bottom: 0.75rem;
+            }
+
+            .card-divider {
+                margin-bottom: 0.75rem;
+            }
+
+            .lf-input-wrap {
+                margin-bottom: 0.65rem;
+            }
+
+            .lf-row {
+                margin-bottom: 0.75rem;
+            }
+
+            .lf-btn {
+                margin-bottom: 0.65rem;
+            }
+
+            .lf-divider {
+                margin-bottom: 0.65rem;
+            }
+
+            .lf-footer {
+                margin-top: 0.75rem;
             }
         }
     </style>

@@ -16,8 +16,8 @@
             --navy-dark: #0D47A1;
             --orange: #F57C00;
             --orange-light: #FFF3E0;
-            --sidebar-w: 260px;
-            --header-h: 64px;
+            --sidebar-w: 220px;
+            --header-h: 56px;
             --line: #EEF0F4;
             --ink-soft: #5B6472;
             --ink-faint: #9AA1AC;
@@ -29,7 +29,7 @@
 
         body {
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-            font-size: 14px;
+            font-size: 13px;
             background: #F5F6FA;
             color: #1a1a2e;
             margin: 0;
@@ -46,27 +46,18 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: transparent;
+            background: rgba(0, 0, 0, 0.08);
             border-radius: 99px;
             transition: background .25s ease;
         }
 
-        html.is-scrolling::-webkit-scrollbar-thumb,
-        .is-scrolling::-webkit-scrollbar-thumb {
-            background: #d0d5dd;
-        }
-
         ::-webkit-scrollbar-thumb:hover {
-            background: #b0b7c3;
+            background: rgba(0, 0, 0, 0.2);
         }
 
         html {
-            scrollbar-width: none;
-        }
-
-        html.is-scrolling {
             scrollbar-width: thin;
-            scrollbar-color: #d0d5dd transparent;
+            scrollbar-color: rgba(0, 0, 0, 0.08) transparent;
         }
 
         /* ── Backdrop (mobile only) ── */
@@ -144,17 +135,17 @@
             height: var(--header-h);
             display: flex;
             align-items: center;
-            gap: 11px;
-            padding: 0 18px;
+            gap: 9px;
+            padding: 0 14px;
             border-bottom: 1px solid var(--line);
             flex-shrink: 0;
             white-space: nowrap;
         }
 
         .sb-logo {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
             overflow: hidden;
             flex-shrink: 0;
             background: #F4F6FA;
@@ -177,7 +168,7 @@
         }
 
         .sb-brand-name {
-            font-size: 25px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--navy);
             letter-spacing: -.4px;
@@ -195,20 +186,20 @@
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            padding: 4px 14px 18px;
+            padding: 2px 10px 14px;
             width: var(--sidebar-w);
         }
 
         .nav-section-label {
-            font-size: 13px;
+            font-size: 10.5px;
             font-weight: 700;
             letter-spacing: .04em;
             text-transform: uppercase;
             color: var(--navy-dark);
             background: #EEF4FC;
             border-radius: 7px;
-            padding: 15px 12px;
-            margin: 6px 0 8px;
+            padding: 10px 10px;
+            margin: 4px 0 5px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -221,7 +212,7 @@
         }
 
         .nav-section-label:first-child {
-            margin-top: 15px;
+            margin-top: 10px;
         }
 
         .nav-section-label svg {
@@ -244,11 +235,11 @@
         .nav-link {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 11px 12px 11px 14px;
-            margin: 3px 0;
+            gap: 9px;
+            padding: 8px 10px 8px 11px;
+            margin: 2px 0;
             border-radius: 8px;
-            font-size: 14.5px;
+            font-size: 13px;
             font-weight: 500;
             color: var(--ink-soft);
             text-decoration: none;
@@ -280,8 +271,8 @@
         }
 
         .nav-link svg {
-            width: 18px;
-            height: 18px;
+            width: 15px;
+            height: 15px;
             flex-shrink: 0;
             opacity: .65;
             stroke-width: 1.75;
@@ -294,9 +285,9 @@
 
         .nav-badge {
             margin-left: auto;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
-            padding: 2px 8px;
+            padding: 1px 6px;
             border-radius: 99px;
             background: var(--orange);
             color: #fff;
@@ -306,29 +297,29 @@
         .sb-footer {
             display: flex;
             align-items: center;
-            gap: 11px;
-            padding: 14px 16px;
+            gap: 9px;
+            padding: 10px 12px;
             border-top: 1px solid var(--line);
             flex-shrink: 0;
             width: var(--sidebar-w);
         }
 
         .sb-avatar {
-            width: 38px;
-            height: 38px;
+            width: 32px;
+            height: 32px;
             border-radius: 8px;
             background: var(--navy);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
+            font-size: 10.5px;
             font-weight: 700;
             color: #fff;
             flex-shrink: 0;
         }
 
         .sb-user-name {
-            font-size: 14px;
+            font-size: 12.5px;
             font-weight: 600;
             color: #1a1a2e;
             white-space: nowrap;
@@ -338,7 +329,7 @@
         }
 
         .sb-user-role {
-            font-size: 12px;
+            font-size: 10.5px;
             font-weight: 500;
             color: var(--ink-faint);
         }
@@ -383,8 +374,8 @@
         /* Main hamburger: lives in the main header (top-left of content area), toggles
            the desktop fixed sidebar (collapse to width 0) or the mobile overlay sidebar. */
         #main-hamburger-btn {
-            width: 38px;
-            height: 38px;
+            width: 34px;
+            height: 34px;
             border: none;
             border-radius: 8px;
             background: #F4F6FA;
@@ -393,7 +384,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4.5px;
+            gap: 4px;
             flex-shrink: 0;
             transition: background .12s;
             position: relative;
@@ -439,7 +430,7 @@
         }
 
         .header-title p {
-            font-size: 12.5px;
+            font-size: 11.5px;
             font-weight: 600;
             color: #6B7280;
             margin: 0;
@@ -454,8 +445,8 @@
         }
 
         .header-icon-btn {
-            width: 38px;
-            height: 38px;
+            width: 34px;
+            height: 34px;
             border: none;
             border-radius: 8px;
             background: #F4F6FA;
@@ -475,8 +466,8 @@
         }
 
         .header-icon-btn svg {
-            width: 17px;
-            height: 17px;
+            width: 15px;
+            height: 15px;
         }
 
         #header-search-wrap.active .header-icon-btn {
@@ -527,12 +518,12 @@
 
         #main-body {
             flex: 1;
-            padding: 24px 20px;
+            padding: 18px 16px;
         }
 
         @media (min-width: 640px) {
             #main-body {
-                padding: 28px 28px;
+                padding: 20px 22px;
             }
         }
 
@@ -562,7 +553,7 @@
     <aside id="sidebar">
         <div class="sb-head">
             <div class="sb-logo">
-                <img src="{{ asset('images/logo_karyaone.png') }}" alt="KaryaOne">
+                <img src="{{ asset('images/logo_brand.png') }}" alt="KaryaOne">
             </div>
             <div class="sb-brand-text">
                 <div class="sb-brand-name">Karya<span>One</span></div>

@@ -27,7 +27,7 @@
 
         <div class="flex-1 text-center sm:text-left">
             <h2 class="text-lg font-bold text-gray-800">{{ $karyawan->full_name }}</h2>
-            <p class="text-[13px] text-gray-400 mt-0.5">{{ $karyawan->position->name ?? '-' }} ·
+            <p class="text-[11.5px] text-gray-400 mt-0.5">{{ $karyawan->position->name ?? '-' }} ·
                 {{ $karyawan->department->name ?? '-' }}</p>
             <div class="flex items-center justify-center sm:justify-start gap-2 mt-3 flex-wrap">
                 @if (is_null($karyawan->resign_date))

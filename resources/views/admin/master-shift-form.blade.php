@@ -203,10 +203,10 @@
     <style>
         .form-label {
             display: block;
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 500;
             color: #4B5563;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .form-input {
@@ -214,7 +214,7 @@
             font-size: 12px;
             border: 1px solid #E5E7EB;
             border-radius: 10px;
-            padding: 10px 13px;
+            padding: 8px 11px;
             outline: none;
             transition: border-color .15s, box-shadow .15s;
             background: #fff;
@@ -230,7 +230,7 @@
             font-size: 12px;
             border: 1px solid #E5E7EB;
             border-radius: 10px;
-            padding: 10px 13px;
+            padding: 8px 11px;
             outline: none;
             background: #fff;
         }

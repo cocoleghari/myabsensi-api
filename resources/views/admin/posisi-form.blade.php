@@ -10,7 +10,7 @@
         <span class="text-gray-600">{{ isset($position) ? 'Edit Posisi' : 'Tambah Posisi' }}</span>
     </div>
 
-    <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
         @if ($errors->any())
             <div class="mb-5 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
                 <ul class="text-xs text-red-600 list-disc list-inside space-y-0.5">
@@ -28,7 +28,7 @@
                 @method('PUT')
             @endif
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
                 <div>
                     <label class="form-label">Nama Posisi <span class="text-red-400">*</span></label>
                     <input type="text" name="name" value="{{ old('name', $position->name ?? '') }}" class="form-input"
@@ -73,7 +73,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3 mt-7 pt-5 border-t border-gray-100">
+            <div class="flex items-center gap-3 mt-5 pt-4 border-t border-gray-100">
                 <button type="submit"
                     class="flex items-center gap-2 text-xs font-medium px-5 py-2.5 rounded-lg text-white hover:opacity-90 transition"
                     style="background:#f97316">
@@ -90,10 +90,10 @@
     <style>
         .form-label {
             display: block;
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 500;
             color: #4B5563;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .form-input {
@@ -101,7 +101,7 @@
             font-size: 12px;
             border: 1px solid #E5E7EB;
             border-radius: 10px;
-            padding: 10px 13px;
+            padding: 8px 11px;
             outline: none;
             transition: border-color .15s;
             background: #fff;

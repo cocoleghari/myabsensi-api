@@ -82,7 +82,7 @@
         {{-- Tabel Absensi --}}
         <div class="bg-white border border-gray-100 rounded-2xl p-6 sm:p-7 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
             <div class="flex items-center justify-between mb-5">
-                <h3 class="text-base font-bold text-gray-800">Absensi terbaru</h3>
+                <h3 class="text-sm font-bold text-gray-800">Absensi terbaru</h3>
                 <a href="{{ route('admin.laporan-absensi') }}"
                     class="text-[13px] font-semibold text-orange-500 hover:text-orange-600 transition-colors">Lihat semua
                     →</a>
@@ -119,10 +119,10 @@
                                             class="w-8 h-8 rounded-full {{ $color }} flex items-center justify-center text-[11px] font-bold flex-shrink-0">
                                             {{ $initials }}</div>
                                         <span
-                                            class="text-[13.5px] font-medium text-gray-800 truncate max-w-[140px]">{{ $absen->employee?->full_name ?? '-' }}</span>
+                                            class="text-[13px] font-medium text-gray-800 truncate max-w-[140px]">{{ $absen->employee?->full_name ?? '-' }}</span>
                                     </div>
                                 </td>
-                                <td class="py-3.5 px-1 text-[13.5px] text-gray-400 font-medium">
+                                <td class="py-3.5 px-1 text-[13px] text-gray-400 font-medium">
                                     {{ $absen->waktu_absen ? \Carbon\Carbon::parse($absen->waktu_absen)->format('H:i') : '—' }}
                                 </td>
                                 <td class="py-3.5 px-1">
@@ -138,7 +138,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="py-12 text-center text-[13.5px] text-gray-400">
+                                <td colspan="3" class="py-12 text-center text-[13px] text-gray-400">
                                     Belum ada absensi hari ini
                                 </td>
                             </tr>
@@ -151,7 +151,7 @@
         {{-- Donut + Progress Bar --}}
         <div class="bg-white border border-gray-100 rounded-2xl p-6 sm:p-7 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-base font-bold text-gray-800">Rekap kehadiran</h3>
+                <h3 class="text-sm font-bold text-gray-800">Rekap kehadiran</h3>
                 <span class="text-[11.5px] text-gray-400 font-semibold bg-gray-50 px-2.5 py-1 rounded-full">Hari ini</span>
             </div>
             <div class="flex items-center gap-7 flex-wrap">

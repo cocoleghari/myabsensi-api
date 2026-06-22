@@ -13,7 +13,7 @@
         <span class="text-gray-600">Edit Assignment</span>
     </div>
 
-    <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
 
         {{-- Info Karyawan --}}
         <div class="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100">
@@ -47,7 +47,7 @@
             <div class="grid grid-cols-2 border border-gray-200 rounded-xl overflow-hidden mb-6">
                 <button type="button" id="tab-shift"
                     class="tab-btn flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -55,7 +55,7 @@
                 </button>
                 <button type="button" id="tab-pattern"
                     class="tab-btn flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -63,7 +63,7 @@
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
 
                 {{-- Panel Shift --}}
                 <div id="panel-shift" class="md:col-span-2">
@@ -121,7 +121,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3 mt-7 pt-5 border-t border-gray-100">
+            <div class="flex items-center gap-3 mt-5 pt-4 border-t border-gray-100">
                 <button type="submit"
                     class="flex items-center gap-2 text-xs font-medium px-5 py-2.5 rounded-lg text-white hover:opacity-90 transition"
                     style="background:#f97316">
@@ -139,10 +139,10 @@
     <style>
         .form-label {
             display: block;
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 500;
             color: #4B5563;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .form-input {
@@ -150,7 +150,7 @@
             font-size: 12px;
             border: 1px solid #E5E7EB;
             border-radius: 10px;
-            padding: 10px 13px;
+            padding: 8px 11px;
             outline: none;
             transition: border-color .15s;
             background: #fff;

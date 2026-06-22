@@ -9,9 +9,9 @@
     {{-- Toast --}}
     @if (session('success'))
         <div id="toast-success"
-            class="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white border border-emerald-100 shadow-xl rounded-xl px-5 py-3.5 text-[13px] font-medium text-emerald-700"
+            class="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white border border-emerald-100 shadow-xl rounded-xl px-4 py-2.5 text-[12.5px] font-medium text-emerald-700"
             style="animation: slideDown 0.3s ease-out;">
-            <svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             {{ session('success') }}
@@ -19,9 +19,9 @@
     @endif
     @if (session('error'))
         <div id="toast-error"
-            class="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white border border-rose-100 shadow-xl rounded-xl px-5 py-3.5 text-[13px] font-medium text-rose-700"
+            class="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-white border border-rose-100 shadow-xl rounded-xl px-4 py-2.5 text-[12.5px] font-medium text-rose-700"
             style="animation: slideDown 0.3s ease-out;">
-            <svg class="w-5 h-5 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -32,7 +32,7 @@
     {{-- Header --}}
     <div class="flex items-center justify-between mb-6 gap-3">
         <div class="min-w-0">
-            <h3 class="text-base font-bold text-gray-800">Lokasi User</h3>
+            <h3 class="text-sm font-bold text-gray-800">Lokasi User</h3>
             <div class="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
                 <p class="text-[13px] text-gray-400 font-medium">Total {{ $employees->total() }} karyawan memiliki lokasi
                     absensi</p>
@@ -54,21 +54,21 @@
     </div>
 
     {{-- Filter --}}
-    <div class="bg-white border border-gray-100 rounded-2xl p-5 mb-5 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
-        <form method="GET" action="{{ route('admin.lokasi-user') }}" class="flex flex-wrap items-center gap-3.5">
-            <div class="relative flex-1 min-w-[220px]">
-                <svg class="w-[18px] h-[18px] absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" fill="none"
+    <div class="bg-white border border-gray-100 rounded-2xl p-4 mb-4 shadow-[0_2px_8px_rgba(16,24,40,0.05)]">
+        <form method="GET" action="{{ route('admin.lokasi-user') }}" class="flex flex-wrap items-center gap-2.5">
+            <div class="relative flex-1 min-w-[180px]">
+                <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" fill="none"
                     stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input type="text" name="search" value="{{ request('search') }}"
                     placeholder="Cari nama, NIK, atau kode karyawan..."
-                    class="w-full pl-11 pr-4 py-3 text-[13.5px] border border-gray-200 rounded-xl focus:outline-none focus:border-orange-400 focus:ring-3 focus:ring-orange-50 transition-all">
+                    class="w-full pl-10 pr-4 py-2 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-50 transition-all">
             </div>
 
             <select name="pusat_lokasi_id"
-                class="filter-select text-[13.5px] border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400">
+                class="filter-select text-[12.5px] border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-orange-400">
                 <option value="">Semua Lokasi</option>
                 @foreach ($lokasis as $lok)
                     <option value="{{ $lok->id }}" {{ request('pusat_lokasi_id') == $lok->id ? 'selected' : '' }}>
@@ -78,7 +78,7 @@
             </select>
 
             <select name="department_id"
-                class="filter-select text-[13.5px] border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400">
+                class="filter-select text-[12.5px] border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-orange-400">
                 <option value="">Semua Departemen</option>
                 @foreach ($departments as $dept)
                     <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>
@@ -88,12 +88,12 @@
             </select>
 
             <button type="submit"
-                class="text-[13.5px] font-semibold px-5 py-3 rounded-xl text-white hover:opacity-90 transition-opacity shadow-sm"
+                class="text-[12.5px] font-semibold px-4 py-2 rounded-xl text-white hover:opacity-90 transition-opacity shadow-sm"
                 style="background:#0f2d6b">Filter</button>
 
             @if (request()->anyFilled(['search', 'pusat_lokasi_id', 'department_id']))
                 <a href="{{ route('admin.lokasi-user') }}"
-                    class="text-[13px] text-gray-400 hover:text-gray-600 transition-colors font-medium">Reset</a>
+                    class="text-[12px] text-gray-400 hover:text-gray-600 transition-colors font-medium">Reset</a>
             @endif
         </form>
     </div>
@@ -104,13 +104,13 @@
             <table class="w-full">
                 <thead>
                     <tr class="border-b border-gray-100 bg-gray-50/70">
-                        <th class="text-left px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                             Karyawan</th>
-                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                             Departemen</th>
-                        <th class="text-left px-4 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Jumlah
+                        <th class="text-left px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Jumlah
                             Lokasi</th>
-                        <th class="text-right px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Aksi
+                        <th class="text-right px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Aksi
                         </th>
                     </tr>
                 </thead>
@@ -118,16 +118,16 @@
                     @forelse ($employees as $emp)
                         <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
                             {{-- Karyawan --}}
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
                                     <div
-                                        class="w-9 h-9 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-semibold text-[12px] flex-shrink-0">
+                                        class="w-8 h-8 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-semibold text-[11px] flex-shrink-0">
                                         {{ strtoupper(substr($emp->full_name ?? '?', 0, 2)) }}
                                     </div>
                                     <div class="min-w-0">
-                                        <p class="text-[13.5px] font-semibold text-gray-800 truncate">{{ $emp->full_name }}
+                                        <p class="text-[13px] font-semibold text-gray-800 truncate">{{ $emp->full_name }}
                                         </p>
-                                        <p class="text-[12px] text-gray-400 mt-0.5">
+                                        <p class="text-[11px] text-gray-400 mt-0.5">
                                             {{ $emp->nik ?? '-' }} · {{ $emp->position?->name ?? '-' }}
                                         </p>
                                     </div>
@@ -138,7 +138,7 @@
                                 {{ $emp->department?->name ?? '-' }}
                             </td>
                             {{-- Jumlah Lokasi --}}
-                            <td class="px-4 py-4">
+                            <td class="px-4 py-3">
                                 <button type="button"
                                     onclick="openDetailModal({{ $emp->id }}, '{{ addslashes($emp->full_name) }}')"
                                     class="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full font-semibold transition-colors cursor-pointer
@@ -151,14 +151,15 @@
                                 </button>
                             </td>
                             {{-- Aksi --}}
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     {{-- Tambah Lokasi --}}
                                     <button type="button"
                                         onclick="openAddModal({{ $emp->id }}, '{{ addslashes($emp->full_name) }}')"
                                         class="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-[12px] font-semibold text-gray-500 hover:text-orange-600 hover:border-orange-200 hover:bg-orange-50 transition-colors"
                                         title="Tambah Lokasi">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 4v16m8-8H4" />
                                         </svg>
@@ -167,9 +168,10 @@
                                     {{-- Hapus Semua --}}
                                     <button type="button"
                                         onclick="openDeleteAllModal({{ $emp->id }}, '{{ addslashes($emp->full_name) }}')"
-                                        class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-rose-600 hover:border-rose-200 transition-colors"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-rose-600 hover:border-rose-200 transition-colors"
                                         title="Hapus Semua Lokasi">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
@@ -196,7 +198,7 @@
         </div>
 
         @if ($employees->hasPages())
-            <div class="px-6 py-4 border-t border-gray-100">
+            <div class="px-4 py-3 border-t border-gray-100">
                 {{ $employees->links() }}
             </div>
         @endif
@@ -210,11 +212,11 @@
             <div class="p-5 border-b border-gray-100 flex items-center justify-between gap-3 flex-shrink-0">
                 <div class="min-w-0">
                     <h3 class="text-[14.5px] font-bold text-gray-800" id="detail-modal-title">Detail Lokasi</h3>
-                    <p class="text-[12px] text-gray-400 mt-0.5" id="detail-modal-sub">-</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5" id="detail-modal-sub">-</p>
                 </div>
                 <button type="button" onclick="closeModal('detail-modal')"
                     class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-50 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -235,11 +237,11 @@
             <div class="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                 <div>
                     <h3 class="text-[14.5px] font-bold text-gray-800">Tambah Lokasi</h3>
-                    <p class="text-[12px] text-gray-400 mt-0.5" id="add-modal-sub">-</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5" id="add-modal-sub">-</p>
                 </div>
                 <button type="button" onclick="closeModal('add-modal')"
                     class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-50 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -311,11 +313,11 @@
                 {{-- Footer --}}
                 <div class="px-5 pb-5 pt-4 flex gap-3 flex-shrink-0 border-t border-gray-100">
                     <button type="button" onclick="closeModal('add-modal')"
-                        class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
+                        class="flex-1 py-2 rounded-xl text-[12.5px] font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
                         Batal
                     </button>
                     <button type="submit" id="add-submit-btn" disabled
-                        class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all opacity-40 cursor-not-allowed"
+                        class="flex-1 py-2 rounded-xl text-[12.5px] font-semibold text-white transition-all opacity-40 cursor-not-allowed"
                         style="background:linear-gradient(135deg,#f97316,#ea580c)">
                         <span id="add-submit-label">Simpan Lokasi</span>
                     </button>
@@ -327,20 +329,20 @@
     {{-- ── Modal: Hapus Semua Lokasi ───────────────────────────────────────── --}}
     <div id="delete-all-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm"
         onclick="closeOnBackdrop(event,'delete-all-modal')">
-        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6 text-center"
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-5 text-center"
             style="animation: popIn 0.2s ease-out;">
-            <div class="w-14 h-14 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
-                <svg class="w-7 h-7 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
             </div>
-            <h3 class="text-[15px] font-bold text-gray-800 mb-1.5">Hapus Semua Lokasi?</h3>
+            <h3 class="text-[13.5px] font-bold text-gray-800 mb-1">Hapus Semua Lokasi?</h3>
             <p class="text-[13px] text-gray-400 mb-1" id="delete-all-name"></p>
             <p class="text-[12px] text-gray-400 mb-6">Karyawan tidak akan bisa absen di lokasi manapun setelah ini.</p>
             <div class="flex gap-3">
                 <button type="button" onclick="closeModal('delete-all-modal')"
-                    class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
+                    class="flex-1 py-2 rounded-xl text-[12.5px] font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
                     Batal
                 </button>
                 <form id="delete-all-form" method="POST">
@@ -359,19 +361,19 @@
     <div id="delete-pivot-modal"
         class="fixed inset-0 z-60 hidden items-center justify-center bg-black/50 backdrop-blur-sm"
         onclick="closeOnBackdrop(event,'delete-pivot-modal')">
-        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6 text-center"
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-5 text-center"
             style="animation: popIn 0.2s ease-out;">
-            <div class="w-14 h-14 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
-                <svg class="w-7 h-7 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 </svg>
             </div>
-            <h3 class="text-[15px] font-bold text-gray-800 mb-1.5">Hapus Lokasi Ini?</h3>
+            <h3 class="text-[13.5px] font-bold text-gray-800 mb-1">Hapus Lokasi Ini?</h3>
             <p class="text-[13px] text-gray-500 mb-6" id="delete-pivot-name"></p>
             <div class="flex gap-3">
                 <button type="button" onclick="closeModal('delete-pivot-modal')"
-                    class="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
+                    class="flex-1 py-2 rounded-xl text-[12.5px] font-semibold text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
                     Batal
                 </button>
                 <form id="delete-pivot-form" method="POST">
@@ -413,10 +415,10 @@
 
         .form-label {
             display: block;
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 500;
             color: #4B5563;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .form-input {
@@ -424,7 +426,7 @@
             font-size: 13px;
             border: 1px solid #E5E7EB;
             border-radius: 10px;
-            padding: 10px 13px;
+            padding: 8px 11px;
             outline: none;
             transition: border-color .15s, box-shadow .15s;
             background: #fff;
@@ -462,17 +464,17 @@
         /* filter choices */
         .filter-select-wrapper {
             margin-bottom: 0 !important;
-            width: 200px;
+            width: 180px;
             flex-shrink: 0;
         }
 
         .filter-select-wrapper .choices__inner {
             border: 1px solid #E5E7EB !important;
             border-radius: 12px !important;
-            padding: 10px 16px !important;
-            font-size: 13.5px !important;
+            padding: 7px 12px !important;
+            font-size: 12.5px !important;
             background: #fff !important;
-            min-height: 46px;
+            min-height: 38px;
             margin: 0 !important;
         }
 
@@ -482,7 +484,7 @@
 
         .filter-select-wrapper .choices__list--dropdown {
             border-radius: 12px !important;
-            font-size: 13.5px !important;
+            font-size: 12.5px !important;
         }
 
         .filter-select-wrapper .choices__list--dropdown .choices__item--selectable.is-highlighted {
@@ -565,7 +567,7 @@
                     '<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>' +
                     '</div>' +
                     '<div class="flex-1 min-w-0">' +
-                    '<p class="text-[13.5px] font-semibold text-gray-800">' + item.nama_lokasi + '</p>' +
+                    '<p class="text-[13px] font-semibold text-gray-800">' + item.nama_lokasi + '</p>' +
                     '<p class="text-[11.5px] text-gray-400 mt-0.5">' +
                     'Radius: <strong>' + (item.radius_meter || 100) + ' m</strong>' +
                     (item.keterangan ? ' · ' + item.keterangan : '') +

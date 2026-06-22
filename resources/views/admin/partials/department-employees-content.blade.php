@@ -20,7 +20,7 @@
                     {{ $initials }}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-[13.5px] font-medium text-gray-800">{{ $emp->full_name }}</p>
+                    <p class="text-[13px] font-medium text-gray-800">{{ $emp->full_name }}</p>
                     <p class="text-[12px] text-gray-400">{{ $emp->nik ?? '-' }} · {{ $emp->position?->name ?? '-' }}</p>
                 </div>
                 <a href="{{ route('admin.karyawan.show', $emp->id) }}"
