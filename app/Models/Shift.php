@@ -15,6 +15,7 @@ class Shift extends Model
 
     protected $fillable = [
         'company_id',
+        'tipe',          // ← BARU
         'nama',
         'kode',
         'jam_masuk',
@@ -30,6 +31,7 @@ class Shift extends Model
     ];
 
     protected $casts = [
+        'tipe' => 'string',
         'melewati_tengah_malam' => 'boolean',
         'berlaku_hari_libur' => 'boolean',
         'berlaku_akhir_pekan' => 'boolean',
@@ -58,31 +60,36 @@ class Shift extends Model
     }
 
     // -------------------------------------------------------------------------
+    // Helper: Flex
+    // -------------------------------------------------------------------------
+
+    public function isFlex(): bool
+    {
+        return $this->tipe === 'flex';
+    }
+
+    // -------------------------------------------------------------------------
     // Logika Shift
     // -------------------------------------------------------------------------
 
     /**
      * Cek apakah tombol absen MASUK boleh ditampilkan pada waktu tertentu.
-     *
-     * Tombol muncul sejak (jam_masuk - window_masuk_awal_menit) hingga
-     * batas_waktu_pulang (termasuk lintas hari untuk shift malam).
+     * Flex shift: selalu boleh (window 24 jam penuh).
      */
     public function bolehAbsenMasuk(Carbon $sekarang): bool
     {
+        if ($this->isFlex()) {
+            return true;
+        }
+
         $jamMasuk = Carbon::parse($this->jam_masuk);
-
-        // Waktu paling awal boleh absen masuk
         $waktuAwal = $jamMasuk->copy()->subMinutes($this->window_masuk_awal_menit);
-
-        // Waktu paling akhir boleh absen masuk = jam pulang + batas lembur
         $batas = Carbon::parse($this->batas_waktu_pulang);
 
-        // Normalkan ke hari yang sama untuk perbandingan
         $waktuHariIni = $sekarang->copy()->startOfDay();
         $waktuAwal = $waktuHariIni->copy()->setTimeFromTimeString($waktuAwal->format('H:i:s'));
         $batasFull = $waktuHariIni->copy()->setTimeFromTimeString($batas->format('H:i:s'));
 
-        // Jika batas melewati tengah malam, tambah 1 hari
         if ($this->melewati_tengah_malam || $batas->lt($jamMasuk)) {
             $batasFull->addDay();
         }
@@ -92,10 +99,14 @@ class Shift extends Model
 
     /**
      * Hitung menit keterlambatan.
-     * Return 0 jika tepat waktu atau dalam toleransi.
+     * Flex shift: selalu 0 (tidak ada konsep terlambat).
      */
     public function hitungMenitTerlambat(Carbon $waktuAbsen): int
     {
+        if ($this->isFlex()) {
+            return 0;
+        }
+
         $jamMasuk = Carbon::parse($this->jam_masuk);
         $batasTepatWaktu = $waktuAbsen->copy()->startOfDay()
             ->setTimeFromTimeString($jamMasuk->format('H:i:s'))
@@ -112,16 +123,19 @@ class Shift extends Model
     }
 
     /**
-     * Hitung menit lembur saat absen pulang.
-     * Return 0 jika pulang sebelum atau tepat jam pulang.
+     * Hitung menit lembur.
+     * Flex shift: selalu 0 (tidak ada konsep lembur).
      */
     public function hitungMenitLembur(Carbon $waktuPulang): int
     {
+        if ($this->isFlex()) {
+            return 0;
+        }
+
         $jamPulang = Carbon::parse($this->jam_pulang);
         $acuan = $waktuPulang->copy()->startOfDay()
             ->setTimeFromTimeString($jamPulang->format('H:i:s'));
 
-        // Shift melewati tengah malam: jam pulang ada di hari berikutnya
         if ($this->melewati_tengah_malam) {
             $acuan->addDay();
         }
@@ -135,24 +149,19 @@ class Shift extends Model
 
     /**
      * Tentukan tanggal LOGIS absensi.
-     *
-     * Untuk shift malam: karyawan masuk Senin jam 22:00, pulang Selasa jam 01:00.
-     * Tanggal logis tetap Senin agar rekap harian akurat.
-     *
-     * Caranya: jika waktu absen sekarang < jam_masuk shift (artinya ini sisi
-     * "dini hari" dari shift semalam), maka tanggal logis = kemarin.
+     * Flex shift: selalu tanggal hari ini (tidak ada logika lintas malam).
      */
     public function tanggalLogisAbsensi(Carbon $waktuAbsen): Carbon
     {
+        if ($this->isFlex()) {
+            return $waktuAbsen->copy()->startOfDay();
+        }
+
         if (! $this->melewati_tengah_malam) {
             return $waktuAbsen->copy()->startOfDay();
         }
 
-        $jamMasuk = Carbon::parse($this->jam_masuk);
         $batasDiniHari = Carbon::parse($this->batas_waktu_pulang);
-
-        // Jika waktu absen sekarang antara tengah malam dan batas pulang,
-        // maka ini adalah "sisi dini hari" → tanggal logis adalah kemarin
         $tengahMalam = $waktuAbsen->copy()->startOfDay();
         $batasFull = $tengahMalam->copy()->setTimeFromTimeString($batasDiniHari->format('H:i:s'));
 
@@ -164,11 +173,15 @@ class Shift extends Model
     }
 
     /**
-     * Apakah sudah waktunya reset (hari dianggap berganti)?
-     * Reset terjadi setelah batas_waktu_pulang terlewati.
+     * Apakah sudah waktunya reset?
+     * Flex shift: reset setiap tengah malam (00:00).
      */
     public function sudahHariBerikutnya(Carbon $sekarang): bool
     {
+        if ($this->isFlex()) {
+            return false; // flex tidak perlu dicek, selalu reset di tengah malam biasa
+        }
+
         $batas = Carbon::parse($this->batas_waktu_pulang);
         $batasFull = $sekarang->copy()->startOfDay()
             ->setTimeFromTimeString($batas->format('H:i:s'));
@@ -178,5 +191,24 @@ class Shift extends Model
         }
 
         return $sekarang->gt($batasFull);
+    }
+
+    /**
+     * Cek apakah waktu yang diberikan sudah lewat [$batasMenit] menit
+     * dari jam_masuk shift. Shift flex selalu false (tidak ada konsep
+     * jam masuk tetap untuk diukur "terlambat parah").
+     */
+    public function sudahLewatBatasDariJamMasuk(Carbon $waktu, int $batasMenit): bool
+    {
+        if ($this->isFlex()) {
+            return false;
+        }
+
+        $jamMasuk = Carbon::parse($this->jam_masuk);
+        $batasWaktu = $waktu->copy()->startOfDay()
+            ->setTimeFromTimeString($jamMasuk->format('H:i:s'))
+            ->addMinutes($batasMenit);
+
+        return $waktu->gt($batasWaktu);
     }
 }

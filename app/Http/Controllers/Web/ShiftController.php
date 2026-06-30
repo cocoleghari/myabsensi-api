@@ -50,25 +50,14 @@ class ShiftController extends Controller
     {
         $request->merge(['kode' => strtoupper(trim($request->kode ?? ''))]);
 
-        $data = $request->validate($this->rules());
+        $isFlex = $request->input('tipe') === 'flex';
 
-        Shift::create([
-            'company_id' => $data['company_id'],
-            'nama' => $data['nama'],
-            'kode' => $data['kode'],
-            'jam_masuk' => $this->normalizeTime($data['jam_masuk']),
-            'jam_pulang' => $this->normalizeTime($data['jam_pulang']),
-            'toleransi_terlambat_menit' => $data['toleransi_terlambat_menit'],
-            'window_masuk_awal_menit' => $data['window_masuk_awal_menit'],
-            'melewati_tengah_malam' => $request->boolean('melewati_tengah_malam'),
-            'batas_waktu_pulang' => $this->normalizeTime($data['batas_waktu_pulang']),
-            'berlaku_hari_libur' => $request->boolean('berlaku_hari_libur'),
-            'berlaku_akhir_pekan' => $request->boolean('berlaku_akhir_pekan'),
-            'keterangan' => $data['keterangan'] ?? null,
-            'is_active' => $request->boolean('is_active'),
-        ]);
+        $data = $request->validate($this->rules(null, $isFlex));
 
-        return redirect()->route('admin.master-shift.index')->with('success', 'Shift berhasil ditambahkan.');
+        Shift::create($this->buildData($request, $data, $isFlex));
+
+        return redirect()->route('admin.master-shift.index')
+            ->with('success', 'Shift berhasil ditambahkan.');
     }
 
     public function edit(Shift $shift)
@@ -82,25 +71,14 @@ class ShiftController extends Controller
     {
         $request->merge(['kode' => strtoupper(trim($request->kode ?? ''))]);
 
-        $data = $request->validate($this->rules($shift->id));
+        $isFlex = $request->input('tipe') === 'flex';
 
-        $shift->update([
-            'company_id' => $data['company_id'],
-            'nama' => $data['nama'],
-            'kode' => $data['kode'],
-            'jam_masuk' => $this->normalizeTime($data['jam_masuk']),
-            'jam_pulang' => $this->normalizeTime($data['jam_pulang']),
-            'toleransi_terlambat_menit' => $data['toleransi_terlambat_menit'],
-            'window_masuk_awal_menit' => $data['window_masuk_awal_menit'],
-            'melewati_tengah_malam' => $request->boolean('melewati_tengah_malam'),
-            'batas_waktu_pulang' => $this->normalizeTime($data['batas_waktu_pulang']),
-            'berlaku_hari_libur' => $request->boolean('berlaku_hari_libur'),
-            'berlaku_akhir_pekan' => $request->boolean('berlaku_akhir_pekan'),
-            'keterangan' => $data['keterangan'] ?? null,
-            'is_active' => $request->boolean('is_active'),
-        ]);
+        $data = $request->validate($this->rules($shift->id, $isFlex));
 
-        return redirect()->route('admin.master-shift.index')->with('success', 'Shift berhasil diperbarui.');
+        $shift->update($this->buildData($request, $data, $isFlex));
+
+        return redirect()->route('admin.master-shift.index')
+            ->with('success', 'Shift berhasil diperbarui.');
     }
 
     public function destroy(Shift $shift)
@@ -119,24 +97,64 @@ class ShiftController extends Controller
 
         $shift->delete();
 
-        return redirect()->route('admin.master-shift.index')->with('success', 'Shift berhasil dihapus.');
+        return redirect()->route('admin.master-shift.index')
+            ->with('success', 'Shift berhasil dihapus.');
     }
 
-    private function rules(?int $ignoreId = null): array
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    private function rules(?int $ignoreId = null, bool $isFlex = false): array
     {
-        return [
+        $rules = [
             'company_id' => 'required|exists:companies,id',
+            'tipe' => 'required|in:reguler,flex',
             'nama' => 'required|string|max:100',
             'kode' => [
                 'required', 'string', 'max:20',
                 Rule::unique('shifts', 'kode')->ignore($ignoreId)->whereNull('deleted_at'),
             ],
-            'jam_masuk' => 'required|date_format:H:i,H:i:s',
-            'jam_pulang' => 'required|date_format:H:i,H:i:s',
-            'toleransi_terlambat_menit' => 'required|integer|min:0|max:240',
-            'window_masuk_awal_menit' => 'required|integer|min:0|max:240',
-            'batas_waktu_pulang' => 'required|date_format:H:i,H:i:s',
             'keterangan' => 'nullable|string|max:500',
+        ];
+
+        // Field jam hanya wajib untuk shift reguler
+        if (! $isFlex) {
+            $rules['jam_masuk'] = 'required|date_format:H:i,H:i:s';
+            $rules['jam_pulang'] = 'required|date_format:H:i,H:i:s';
+            $rules['batas_waktu_pulang'] = 'required|date_format:H:i,H:i:s';
+            $rules['toleransi_terlambat_menit'] = 'required|integer|min:0|max:240';
+            $rules['window_masuk_awal_menit'] = 'required|integer|min:0|max:240';
+        }
+
+        return $rules;
+    }
+
+    private function buildData(Request $request, array $data, bool $isFlex): array
+    {
+        // Untuk flex: isi nilai default agar kolom NOT NULL tidak error
+        $jamMasuk = $isFlex ? '00:00' : $this->normalizeTime($data['jam_masuk']);
+        $jamPulang = $isFlex ? '23:59' : $this->normalizeTime($data['jam_pulang']);
+        $batasWaktuPulang = $isFlex ? '23:59' : $this->normalizeTime($data['batas_waktu_pulang']);
+        $toleransi = $isFlex ? 0 : (int) $data['toleransi_terlambat_menit'];
+        $windowMasuk = $isFlex ? 0 : (int) $data['window_masuk_awal_menit'];
+        $melewatiMalam = $isFlex ? false : $request->boolean('melewati_tengah_malam');
+
+        return [
+            'company_id' => $data['company_id'],
+            'tipe' => $data['tipe'],
+            'nama' => $data['nama'],
+            'kode' => $data['kode'],
+            'jam_masuk' => $jamMasuk,
+            'jam_pulang' => $jamPulang,
+            'toleransi_terlambat_menit' => $toleransi,
+            'window_masuk_awal_menit' => $windowMasuk,
+            'melewati_tengah_malam' => $melewatiMalam,
+            'batas_waktu_pulang' => $batasWaktuPulang,
+            'berlaku_hari_libur' => $request->boolean('berlaku_hari_libur'),
+            'berlaku_akhir_pekan' => $request->boolean('berlaku_akhir_pekan'),
+            'keterangan' => $data['keterangan'] ?? null,
+            'is_active' => $request->boolean('is_active'),
         ];
     }
 

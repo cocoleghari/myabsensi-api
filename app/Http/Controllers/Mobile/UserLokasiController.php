@@ -197,9 +197,52 @@ class UserLokasiController extends Controller
                 : now()->setTimezone('Asia/Jakarta');
 
             Log::info('Mode: '.($isOffline ? 'OFFLINE (waktu asli: '.$sekarang.')' : 'ONLINE'));
-            $tanggalAbsen = $shift
-                ? $shift->tanggalLogisAbsensi($sekarang)
-                : $sekarang->copy()->startOfDay();
+
+            // ── BARU: auto-convert ke "pulang" jika lupa absen masuk ────────
+            // Berlaku hanya shift reguler. Jika user belum absen masuk sama
+            // sekali dan sudah lewat ambang batas dari jam_masuk, anggap saja
+            // niat aslinya absen pulang — tanpa dialog, tanpa approval manual.
+            // ── BARU: auto-convert ke "pulang" jika lupa absen masuk ────────
+            $BATAS_LUPA_MASUK_MENIT = 240; // 4 jam
+            $isAutoConvertLupaMasuk = false;
+
+            if ($tipe === 'masuk' && $shift && ! $shift->isFlex()) {
+                $tanggalCekSementara = $shift->tanggalLogisAbsensi($sekarang);
+                $sudahAdaMasuk = Absensi::where('employee_id', $employee->id)
+                    ->where('tipe_absen', 'masuk')
+                    ->whereDate('tanggal_absen', $tanggalCekSementara->toDateString())
+                    ->exists();
+
+                if (! $sudahAdaMasuk && $shift->sudahLewatBatasDariJamMasuk($sekarang, $BATAS_LUPA_MASUK_MENIT)) {
+                    Log::info("Auto-convert masuk→pulang: employee {$employee->id} dianggap lupa absen masuk.");
+                    $tipe = 'pulang';
+                    $isAutoConvertLupaMasuk = true;
+                }
+            }
+
+            // Untuk flex shift, cek apakah ini absen PULANG dari shift malam kemarin
+            if ($shift && $shift->isFlex() && $tipe === 'pulang') {
+                $kemarin = $sekarang->copy()->subDay()->startOfDay();
+                $absenMasukKemarin = Absensi::where('employee_id', $employee->id)
+                    ->where('tipe_absen', 'masuk')
+                    ->whereDate('tanggal_absen', $kemarin->toDateString())
+                    ->exists();
+                $absenPulangKemarin = Absensi::where('employee_id', $employee->id)
+                    ->where('tipe_absen', 'pulang')
+                    ->whereDate('tanggal_absen', $kemarin->toDateString())
+                    ->exists();
+
+                // Masuk kemarin, belum pulang → pulang ini milik shift kemarin
+                if ($absenMasukKemarin && ! $absenPulangKemarin) {
+                    $tanggalAbsen = $kemarin;
+                } else {
+                    $tanggalAbsen = $sekarang->copy()->startOfDay();
+                }
+            } else {
+                $tanggalAbsen = $shift
+                    ? $shift->tanggalLogisAbsensi($sekarang)
+                    : $sekarang->copy()->startOfDay();
+            }
             Log::info('DEBUG SEKARANG', [
                 'sekarang' => $sekarang->toDateTimeString(),
                 'timezone' => $sekarang->timezone->getName(),
@@ -223,7 +266,7 @@ class UserLokasiController extends Controller
                 ], 400);
             }
 
-            if ($tipe === 'pulang') {
+            if ($tipe === 'pulang' && ! $isAutoConvertLupaMasuk) {
                 $sudahMasuk = Absensi::where('employee_id', $employee->id)
                     ->where('tipe_absen', 'masuk')
                     ->whereDate('tanggal_absen', $tanggalAbsen->toDateString())
@@ -364,11 +407,22 @@ class UserLokasiController extends Controller
             if ($shift) {
                 if ($tipe === 'masuk') {
                     $menitTerlambat = $shift->hitungMenitTerlambat($sekarang);
-                    $statusAbsen = $menitTerlambat > 0 ? 'terlambat' : 'tepat_waktu';
+                    if ($shift->isFlex()) {
+                        $statusAbsen = 'hadir';
+                    } else {
+                        $statusAbsen = $menitTerlambat > 0 ? 'terlambat' : 'tepat_waktu';
+                    }
                 } else {
                     $menitLembur = $shift->hitungMenitLembur($sekarang);
-                    $statusAbsen = $menitLembur > 0 ? 'lembur' : 'tepat_waktu';
+                    if ($shift->isFlex()) {
+                        $statusAbsen = 'hadir';
+                    } else {
+                        $statusAbsen = $menitLembur > 0 ? 'lembur' : 'tepat_waktu';
+                    }
                 }
+            } elseif (! $shift) {
+                // Karyawan tanpa shift juga cukup dicatat sebagai hadir
+                $statusAbsen = 'hadir';
             }
 
             Log::info("Status: {$statusAbsen}, Terlambat: {$menitTerlambat} menit, Lembur: {$menitLembur} menit");
@@ -549,12 +603,57 @@ class UserLokasiController extends Controller
         try {
             $employee = $this->getEmployee($request);
             $shift = $this->getShiftAktif($employee);
-
             $sekarang = now()->setTimezone('Asia/Jakarta');
-            $tanggalAbsen = $shift
-                ? $shift->tanggalLogisAbsensi($sekarang)
-                : $sekarang->copy()->startOfDay();
 
+            // ── Tentukan tanggal logis ──────────────────────────────────
+            if ($shift && $shift->isFlex()) {
+                // Flex: cek dulu apakah ada absen masuk KEMARIN yang belum pulang
+                $kemarin = $sekarang->copy()->subDay()->startOfDay();
+
+                $absenMasukKemarin = Absensi::where('employee_id', $employee->id)
+                    ->where('tipe_absen', 'masuk')
+                    ->whereDate('tanggal_absen', $kemarin->toDateString())
+                    ->first();
+
+                $absenPulangKemarin = Absensi::where('employee_id', $employee->id)
+                    ->where('tipe_absen', 'pulang')
+                    ->whereDate('tanggal_absen', $kemarin->toDateString())
+                    ->first();
+
+                // Kalau kemarin sudah masuk tapi belum pulang
+                // → karyawan sedang dalam shift malam yang lintas hari
+                // → gunakan tanggal kemarin sebagai konteks
+                if ($absenMasukKemarin && ! $absenPulangKemarin) {
+                    $tanggalAbsen = $kemarin;
+
+                    return response()->json([
+                        'success' => true,
+                        'tanggal' => $tanggalAbsen->toDateString(),
+                        'shift' => $shift ? [
+                            'nama' => $shift->nama,
+                            'jam_masuk' => $shift->jam_masuk,
+                            'jam_pulang' => $shift->jam_pulang,
+                            'tipe' => $shift->tipe,
+                            'toleransi_terlambat_menit' => $shift->toleransi_terlambat_menit,
+                        ] : null,
+                        'sudah_masuk' => true,
+                        'sudah_pulang' => false,
+                        'data_masuk' => $absenMasukKemarin->load('pusatLokasi:id,nama_lokasi'),
+                        'data_pulang' => null,
+                    ]);
+                }
+
+                // Tidak ada shift malam kemarin → pakai hari ini
+                $tanggalAbsen = $sekarang->copy()->startOfDay();
+
+            } else {
+                // Reguler: pakai tanggal logis dari shift
+                $tanggalAbsen = $shift
+                    ? $shift->tanggalLogisAbsensi($sekarang)
+                    : $sekarang->copy()->startOfDay();
+            }
+
+            // ── Cari absensi berdasarkan tanggal logis ──────────────────
             $absensiMasuk = Absensi::where('employee_id', $employee->id)
                 ->where('tipe_absen', 'masuk')
                 ->whereDate('tanggal_absen', $tanggalAbsen->toDateString())
@@ -574,6 +673,8 @@ class UserLokasiController extends Controller
                     'nama' => $shift->nama,
                     'jam_masuk' => $shift->jam_masuk,
                     'jam_pulang' => $shift->jam_pulang,
+                    'tipe' => $shift->tipe,
+                    'toleransi_terlambat_menit' => $shift->toleransi_terlambat_menit,
                 ] : null,
                 'sudah_masuk' => (bool) $absensiMasuk,
                 'sudah_pulang' => (bool) $absensiPulang,

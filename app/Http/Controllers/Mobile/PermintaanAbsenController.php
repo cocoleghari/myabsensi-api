@@ -20,6 +20,8 @@ class PermintaanAbsenController extends Controller
     {
         $request->validate([
             'tipe_absen' => 'required|in:masuk,pulang',
+            'jenis' => 'required|in:izin_lokasi,koreksi_lupa_masuk',
+            'waktu_koreksi' => 'required_if:jenis,koreksi_lupa_masuk|nullable|date',
             'alasan' => 'required|string|max:100',
             'keterangan' => 'nullable|string|max:500',
             'latitude' => 'required|numeric',
@@ -35,10 +37,31 @@ class PermintaanAbsenController extends Controller
             return response()->json(['message' => 'Profil karyawan tidak ditemukan.'], 403);
         }
 
-        // Load department + parent untuk resolveApprover
+        $jenis = $request->jenis;
+
+        // Untuk koreksi lupa masuk: pastikan belum ada absen masuk hari ini
+        if ($jenis === 'koreksi_lupa_masuk') {
+            $shift = $this->getShiftAktif($employee);
+            $sekarang = now()->setTimezone('Asia/Jakarta');
+            $tanggalLogis = $shift
+                ? $shift->tanggalLogisAbsensi($sekarang)
+                : $sekarang->copy()->startOfDay();
+
+            $sudahMasuk = Absensi::where('employee_id', $employee->id)
+                ->where('tipe_absen', 'masuk')
+                ->whereDate('tanggal_absen', $tanggalLogis->toDateString())
+                ->exists();
+
+            if ($sudahMasuk) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda sudah memiliki absen masuk hari ini. Koreksi tidak diperlukan.',
+                ], 422);
+            }
+        }
+
         $employee->load('department.manager', 'department.parent.manager');
 
-        // Simpan foto
         $foto = $request->file('foto_wajah');
         $fotoPath = $foto->storeAs(
             'permintaan_absen',
@@ -46,7 +69,6 @@ class PermintaanAbsenController extends Controller
             'public'
         );
 
-        // Tentukan approver
         $approver = PermintaanAbsen::resolveApprover($employee);
 
         DB::beginTransaction();
@@ -55,7 +77,11 @@ class PermintaanAbsenController extends Controller
                 'employee_id' => $employee->id,
                 'pusat_lokasi_id' => $request->pusat_lokasi_id,
                 'tipe_absen' => $request->tipe_absen,
+                'jenis' => $jenis,
                 'waktu_pengajuan' => now(),
+                'waktu_koreksi' => $jenis === 'koreksi_lupa_masuk'
+                                            ? \Carbon\Carbon::parse($request->waktu_koreksi)
+                                            : null,
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
                 'jarak_meter' => $request->jarak_meter,
@@ -66,29 +92,32 @@ class PermintaanAbsenController extends Controller
                 'alamat_pengajuan' => $request->alamat_pengajuan,
             ]);
 
-            // Notifikasi ke approver (manager)
+            // Notifikasi ke approver
+            $judulNotif = $jenis === 'koreksi_lupa_masuk'
+                ? 'Koreksi Lupa Absen Masuk'
+                : 'Permintaan Izin Lokasi';
+
             if ($approver?->user_id) {
                 Notification::create([
                     'user_id' => $approver->user_id,
                     'type' => 'permintaan_absen',
-                    'title' => 'Permintaan Izin Lokasi',
+                    'title' => $judulNotif,
                     'subtitle' => $employee->full_name.' · '.$request->alasan,
                     'category' => 'request',
                     'data' => json_encode(['permintaan_id' => $permintaan->id]),
                 ]);
             } else {
-                // Fallback: notif ke semua admin/superadmin
-                User::whereHas('roles', fn ($q) => $q->whereIn('name', ['admin', 'superadmin'])
-                )->each(function ($admin) use ($permintaan, $employee, $request) {
-                    Notification::create([
-                        'user_id' => $admin->id,
-                        'type' => 'permintaan_absen',
-                        'title' => 'Permintaan Izin Lokasi',
-                        'subtitle' => $employee->full_name.' · '.$request->alasan,
-                        'category' => 'request',
-                        'data' => json_encode(['permintaan_id' => $permintaan->id]),
-                    ]);
-                });
+                User::whereHas('roles', fn ($q) => $q->whereIn('name', ['admin', 'superadmin']))
+                    ->each(function ($admin) use ($permintaan, $employee, $request, $judulNotif) {
+                        Notification::create([
+                            'user_id' => $admin->id,
+                            'type' => 'permintaan_absen',
+                            'title' => $judulNotif,
+                            'subtitle' => $employee->full_name.' · '.$request->alasan,
+                            'category' => 'request',
+                            'data' => json_encode(['permintaan_id' => $permintaan->id]),
+                        ]);
+                    });
             }
 
             DB::commit();
@@ -177,7 +206,6 @@ class PermintaanAbsenController extends Controller
 
             // Jika approved → buat record absensi otomatis
             if ($request->status === 'approved') {
-                // Ambil shift aktif karyawan saat waktu pengajuan
                 $employeeShift = \App\Models\EmployeeShift::aktifPada($permintaan->waktu_pengajuan)
                     ->where('employee_id', $permintaan->employee_id)
                     ->with(['shift', 'pattern.days.shift'])
@@ -192,41 +220,77 @@ class PermintaanAbsenController extends Controller
                     }
                 }
 
-                // Hitung menit terlambat / lembur
+                // Untuk koreksi: gunakan waktu_koreksi sebagai waktu absen masuk
+                $isKoreksi = $permintaan->jenis === 'koreksi_lupa_masuk';
+                $waktuAbsen = $isKoreksi && $permintaan->waktu_koreksi
+                    ? $permintaan->waktu_koreksi
+                    : $permintaan->waktu_pengajuan;
+
                 $menitTerlambat = 0;
                 $menitLembur = 0;
                 $statusAbsen = 'tepat_waktu';
 
                 if ($shift) {
                     if ($permintaan->tipe_absen === 'masuk') {
-                        $menitTerlambat = $shift->hitungMenitTerlambat($permintaan->waktu_pengajuan);
-                        $statusAbsen = $menitTerlambat > 0 ? 'terlambat' : 'tepat_waktu';
+                        $menitTerlambat = $shift->hitungMenitTerlambat($waktuAbsen);
+                        if ($shift->isFlex()) {
+                            $statusAbsen = 'hadir';
+                        } else {
+                            $statusAbsen = $menitTerlambat > 0 ? 'terlambat' : 'tepat_waktu';
+                        }
                     } else {
-                        $menitLembur = $shift->hitungMenitLembur($permintaan->waktu_pengajuan);
-                        $statusAbsen = $menitLembur > 0 ? 'lembur' : 'tepat_waktu';
+                        $menitLembur = $shift->hitungMenitLembur($waktuAbsen);
+                        if ($shift->isFlex()) {
+                            $statusAbsen = 'hadir';
+                        } else {
+                            $statusAbsen = $menitLembur > 0 ? 'lembur' : 'tepat_waktu';
+                        }
+                    }
+                } elseif (! $shift) {
+                    $statusAbsen = 'hadir';
+                }
+
+                // Tanggal logis — untuk koreksi pakai waktu_koreksi
+                $tanggalAbsen = $shift
+                    ? $shift->tanggalLogisAbsensi($waktuAbsen)->toDateString()
+                    : $waktuAbsen->toDateString();
+
+                // Jika koreksi: pastikan belum ada absen masuk di tanggal tersebut
+                if ($isKoreksi) {
+                    $sudahAda = Absensi::where('employee_id', $permintaan->employee_id)
+                        ->where('tipe_absen', 'masuk')
+                        ->whereDate('tanggal_absen', $tanggalAbsen)
+                        ->exists();
+
+                    if ($sudahAda) {
+                        DB::rollBack();
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Absen masuk untuk tanggal tersebut sudah ada. Tidak dapat membuat duplikat.',
+                        ], 422);
                     }
                 }
 
                 $absensi = Absensi::create([
                     'employee_id' => $permintaan->employee_id,
                     'pusat_lokasi_id' => $permintaan->pusat_lokasi_id,
-                    'shift_id' => $shift?->id,                    // ← dari shift aktif
-                    'tanggal_absen' => $shift
-                        ? $shift->tanggalLogisAbsensi($permintaan->waktu_pengajuan)->toDateString()
-                        : $permintaan->waktu_pengajuan->toDateString(),
+                    'shift_id' => $shift?->id,
+                    'tanggal_absen' => $tanggalAbsen,
                     'tipe_absen' => $permintaan->tipe_absen,
-                    'waktu_absen' => $permintaan->waktu_pengajuan,
+                    'waktu_absen' => $waktuAbsen,
                     'latitude' => $permintaan->latitude,
                     'longitude' => $permintaan->longitude,
                     'jarak_meter' => $permintaan->jarak_meter,
-                    'foto_absen_path' => $permintaan->foto_path ?? null, // ← path lengkap
-                    'confidence_score' => null,                           // tidak ada face recognition
+                    'foto_absen_path' => $permintaan->foto_path ?? null,
+                    'confidence_score' => null,
                     'wajah_cocok' => false,
-                    'status' => $statusAbsen,                   // ← dihitung dari shift
-                    'menit_terlambat' => $menitTerlambat,                // ← dihitung dari shift
-                    'menit_lembur' => $menitLembur,                   // ← dihitung dari shift
-                    'catatan' => 'Disetujui via permintaan izin lokasi oleh '
-                                          .$managerEmployee->full_name,
+                    'status' => $statusAbsen,
+                    'menit_terlambat' => $menitTerlambat,
+                    'menit_lembur' => $menitLembur,
+                    'catatan' => $isKoreksi
+                        ? 'Koreksi lupa absen masuk, disetujui oleh '.$managerEmployee->full_name
+                        : 'Disetujui via permintaan izin lokasi oleh '.$managerEmployee->full_name,
                 ]);
 
                 $permintaan->update(['absensi_id' => $absensi->id]);
@@ -304,5 +368,27 @@ class PermintaanAbsenController extends Controller
             'success' => true,
             'data' => $permintaan,
         ]);
+    }
+
+    private function getShiftAktif(Employee $employee): ?\App\Models\Shift
+    {
+        $employeeShift = \App\Models\EmployeeShift::aktifPada(now())
+            ->where('employee_id', $employee->id)
+            ->with(['shift', 'pattern.days.shift'])
+            ->first();
+
+        if (! $employeeShift) {
+            return null;
+        }
+
+        if ($employeeShift->shift_id && $employeeShift->shift) {
+            return $employeeShift->shift;
+        }
+
+        if ($employeeShift->pattern_id && $employeeShift->pattern) {
+            return $employeeShift->pattern->getShiftForDate(now());
+        }
+
+        return null;
     }
 }

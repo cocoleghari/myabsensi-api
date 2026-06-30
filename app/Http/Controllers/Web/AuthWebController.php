@@ -8,33 +8,37 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthWebController extends Controller
 {
+    const WEB_ALLOWED_ROLES = ['superadmin', 'admin', 'hrd', 'manager', 'supervisor'];
+
     public function showLogin()
     {
-        if (Auth::check() && Auth::user()->role === 'admin') {
+        if (Auth::check() && in_array(Auth::user()->role, self::WEB_ALLOWED_ROLES)) {
             return redirect()->route('admin.dashboard');
         }
+
         return view('auth.login');
     }
 
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required',
+            'email' => 'required|email',
             'password' => 'required',
         ]);
 
-        $credentials = $request->only('email', 'password');
-
-        if (Auth::attempt($credentials)) {
-            if (Auth::user()->role !== 'admin') {
-                Auth::logout();
-                return back()->withErrors(['email' => 'Anda tidak memiliki akses admin.']);
-            }
-            $request->session()->regenerate();
-            return redirect()->route('admin.dashboard');
+        if (! Auth::attempt($request->only('email', 'password'))) {
+            return back()->withErrors(['email' => 'Email atau password salah.']);
         }
 
-        return back()->withErrors(['email' => 'Email atau password salah.']);
+        if (! in_array(Auth::user()->role, self::WEB_ALLOWED_ROLES)) {
+            Auth::logout();
+
+            return back()->withErrors(['email' => 'Anda tidak memiliki akses ke panel admin.']);
+        }
+
+        $request->session()->regenerate();
+
+        return redirect()->route('admin.dashboard');
     }
 
     public function logout(Request $request)
@@ -42,6 +46,7 @@ class AuthWebController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('admin.login');
     }
 }

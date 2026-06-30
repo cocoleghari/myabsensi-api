@@ -356,7 +356,7 @@
                         <div>
                             <label class="form-label">Role</label>
                             <select name="role" class="form-select">
-                                @foreach (['employee' => 'Employee', 'hrd' => 'HRD', 'manager' => 'Manager', 'admin' => 'Admin'] as $v => $l)
+                                @foreach (['employee' => 'Employee', 'hrd' => 'HRD', 'supervisor' => 'Supervisor', 'manager' => 'Manager', 'admin' => 'Admin'] as $v => $l)
                                     <option value="{{ $v }}"
                                         {{ old('role', $karyawan->user?->role ?? 'employee') == $v ? 'selected' : '' }}>
                                         {{ $l }}</option>

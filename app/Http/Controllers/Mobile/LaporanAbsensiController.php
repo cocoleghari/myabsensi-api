@@ -27,7 +27,7 @@ class LaporanAbsensiController extends Controller
             'employee_id' => 'nullable|integer|exists:employees,id',
             'pusat_lokasi_id' => 'nullable|integer|exists:pusat_lokasis,id',
             'department_id' => 'nullable|integer|exists:departments,id',
-            'status' => 'nullable|in:tepat_waktu,terlambat,diluar_lokasi,lembur',
+            'status' => 'nullable|in:tepat_waktu,terlambat,diluar_lokasi,lembur,hadir',
             'tipe_absen' => 'nullable|in:masuk,pulang',
         ]);
 
@@ -70,7 +70,7 @@ class LaporanAbsensiController extends Controller
             'employee_id' => 'nullable|integer|exists:employees,id',
             'pusat_lokasi_id' => 'nullable|integer|exists:pusat_lokasis,id',
             'department_id' => 'nullable|integer|exists:departments,id',
-            'status' => 'nullable|in:tepat_waktu,terlambat,diluar_lokasi,lembur',
+            'status' => 'nullable|in:tepat_waktu,terlambat,diluar_lokasi,lembur,hadir',
             'tipe_absen' => 'nullable|in:masuk,pulang',
             'format' => 'nullable|in:detail,rekap',
         ]);
@@ -126,7 +126,12 @@ class LaporanAbsensiController extends Controller
             $query->where('pusat_lokasi_id', $request->input('pusat_lokasi_id'));
         }
 
-        if ($request->filled('department_id')) {
+        // Jadi (support array)
+        if ($request->filled('department_ids')) {
+            $ids = (array) $request->input('department_ids');
+            $query->whereHas('employee', fn ($q) => $q->whereIn('department_id', $ids)
+            );
+        } elseif ($request->filled('department_id')) {
             $query->whereHas('employee', fn ($q) => $q->where('department_id', $request->input('department_id'))
             );
         }
@@ -306,7 +311,7 @@ class LaporanAbsensiController extends Controller
 
                 $sheet->setCellValue("A{$row}", $no++);
                 $sheet->setCellValue("B{$row}", $emp?->full_name ?? '-');
-                $sheet->setCellValue("C{$row}", $rec->employee?->position?->name ?? '-');
+                $sheet->setCellValue("C{$row}", $emp?->position?->name ?? '-');
                 $sheet->setCellValue("D{$row}", $emp?->department?->name ?? '-');
                 $sheet->setCellValue("E{$row}", $tgl->format('d/m/Y'));
                 $sheet->setCellValue("F{$row}", $jamMasuk);
@@ -561,6 +566,7 @@ class LaporanAbsensiController extends Controller
             'terlambat' => 'Terlambat',
             'diluar_lokasi' => 'Di Luar Lokasi',
             'lembur' => 'Lembur',
+            'hadir' => 'Hadir',
             default => '-',
         };
     }

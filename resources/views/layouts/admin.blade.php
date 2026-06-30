@@ -564,6 +564,8 @@
         <nav id="sidebar-nav">
 
             @php
+                $isLimited = in_array(Auth::user()->role, ['manager', 'supervisor']);
+
                 $navGroups = [
                     'Menu Utama' => [
                         [
@@ -588,101 +590,116 @@
                             'icon' =>
                                 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
                         ],
-                        [
-                            'route' => 'admin.foto-wajah.index',
-                            'match' => 'admin.foto-wajah.*',
-                            'label' => 'Foto Dasar Kehadiran',
-                            'icon' =>
-                                'M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z M15 13a3 3 0 11-6 0 3 3 0 016 0z',
-                        ],
+                        ...$isLimited
+                            ? []
+                            : [
+                                [
+                                    'route' => 'admin.foto-wajah.index',
+                                    'match' => 'admin.foto-wajah.*',
+                                    'label' => 'Foto Dasar Kehadiran',
+                                    'icon' =>
+                                        'M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z M15 13a3 3 0 11-6 0 3 3 0 016 0z',
+                                ],
+                            ],
                     ],
-                    'Pengaturan Akun' => [
-                        [
-                            'route' => 'admin.list-akun.index',
-                            'match' => 'admin.list-akun.*',
-                            'label' => 'List Akun',
-                            'icon' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+                    ...$isLimited
+                        ? []
+                        : [
+                            'Pengaturan Akun' => [
+                                [
+                                    'route' => 'admin.list-akun.index',
+                                    'match' => 'admin.list-akun.*',
+                                    'label' => 'List Akun',
+                                    'icon' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+                                ],
+                                [
+                                    'route' => 'admin.lokasi-user',
+                                    'match' => 'admin.lokasi-user',
+                                    'label' => 'Lokasi User',
+                                    'icon' =>
+                                        'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z',
+                                ],
+                                [
+                                    'route' => 'admin.pengaturan-lokasi.index',
+                                    'match' => 'admin.pengaturan-lokasi.*',
+                                    'label' => 'Pengaturan Lokasi',
+                                    'icon' =>
+                                        'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7',
+                                ],
+                            ],
+                            'Pengaturan Karyawan' => [
+                                [
+                                    'route' => 'admin.karyawan.index',
+                                    'match' => 'admin.karyawan.*',
+                                    'label' => 'Daftar Karyawan',
+                                    'icon' =>
+                                        'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+                                ],
+                                [
+                                    'route' => 'admin.department.index',
+                                    'match' => 'admin.department.*',
+                                    'label' => 'Department',
+                                    'icon' =>
+                                        'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+                                ],
+                                [
+                                    'route' => 'admin.posisi.index',
+                                    'match' => 'admin.posisi.*',
+                                    'label' => 'Posisi / Jabatan',
+                                    'icon' =>
+                                        'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+                                ],
+                                [
+                                    'route' => 'admin.job-grade.index',
+                                    'match' => 'admin.job-grade.*',
+                                    'label' => 'Job Grade',
+                                    'icon' =>
+                                        'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z',
+                                ],
+                                [
+                                    'route' => 'admin.job-level.index',
+                                    'match' => 'admin.job-level.*',
+                                    'label' => 'Job Level',
+                                    'icon' => 'M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12',
+                                ],
+                                [
+                                    'route' => 'admin.status-karyawan.index',
+                                    'match' => 'admin.status-karyawan.*',
+                                    'label' => 'Status Karyawan',
+                                    'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+                                ],
+                            ],
+                            'Pengaturan Shift' => [
+                                [
+                                    'route' => 'admin.master-shift.index',
+                                    'match' => 'admin.master-shift.*',
+                                    'label' => 'Master Shift',
+                                    'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+                                ],
+                                [
+                                    'route' => 'admin.pola-shift.index',
+                                    'match' => 'admin.pola-shift.*',
+                                    'label' => 'Pola Shift Mingguan',
+                                    'icon' => 'M4 6h16M4 10h16M4 14h16M4 18h16',
+                                ],
+                                [
+                                    'route' => 'admin.assign-shift.index',
+                                    'match' => 'admin.assign-shift.*',
+                                    'label' => 'Assign Shift',
+                                    'icon' =>
+                                        'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+                                ],
+                            ],
                         ],
-                        [
-                            'route' => 'admin.lokasi-user',
-                            'match' => 'admin.lokasi-user',
-                            'label' => 'Lokasi User',
-                            'icon' =>
-                                'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z',
-                        ],
-                        [
-                            'route' => 'admin.pengaturan-lokasi.index',
-                            'match' => 'admin.pengaturan-lokasi.*',
-                            'label' => 'Pengaturan Lokasi',
-                            'icon' =>
-                                'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7',
-                        ],
-                    ],
-                    'Pengaturan Karyawan' => [
-                        [
-                            'route' => 'admin.karyawan.index',
-                            'match' => 'admin.karyawan.*',
-                            'label' => 'Daftar Karyawan',
-                            'icon' =>
-                                'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
-                        ],
-                        [
-                            'route' => 'admin.department.index',
-                            'match' => 'admin.department.*',
-                            'label' => 'Department',
-                            'icon' =>
-                                'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
-                        ],
-                        [
-                            'route' => 'admin.posisi.index',
-                            'match' => 'admin.posisi.*',
-                            'label' => 'Posisi / Jabatan',
-                            'icon' =>
-                                'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
-                        ],
-                        [
-                            'route' => 'admin.job-grade.index',
-                            'match' => 'admin.job-grade.*',
-                            'label' => 'Job Grade',
-                            'icon' =>
-                                'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z',
-                        ],
-                        [
-                            'route' => 'admin.job-level.index',
-                            'match' => 'admin.job-level.*',
-                            'label' => 'Job Level',
-                            'icon' => 'M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12',
-                        ],
-                        [
-                            'route' => 'admin.status-karyawan.index',
-                            'match' => 'admin.status-karyawan.*',
-                            'label' => 'Status Karyawan',
-                            'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-                        ],
-                    ],
-                    'Pengaturan Shift' => [
-                        [
-                            'route' => 'admin.master-shift.index',
-                            'match' => 'admin.master-shift.*',
-                            'label' => 'Master Shift',
-                            'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-                        ],
-                        [
-                            'route' => 'admin.pola-shift.index',
-                            'match' => 'admin.pola-shift.*',
-                            'label' => 'Pola Shift Mingguan',
-                            'icon' => 'M4 6h16M4 10h16M4 14h16M4 18h16',
-                        ],
-                        [
-                            'route' => 'admin.assign-shift.index',
-                            'match' => 'admin.assign-shift.*',
-                            'label' => 'Assign Shift',
-                            'icon' =>
-                                'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
-                        ],
-                    ],
                 ];
-                $pendingAbsen = \App\Models\PermintaanAbsen::where('status', 'pending')->count();
+                $pendingAbsen = $isLimited
+                    ? \App\Models\PermintaanAbsen::where('status', 'pending')
+                        ->whereHas(
+                            'employee',
+                            fn($q) => $q->whereIn('department_id', \App\Helpers\ScopeHelper::getDepartmentIds()),
+                        )
+                        ->count()
+                    : \App\Models\PermintaanAbsen::where('status', 'pending')->count();
             @endphp
 
             @foreach ($navGroups as $groupLabel => $items)
@@ -721,7 +738,7 @@
             <div class="sb-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 2)) }}</div>
             <div style="flex:1;min-width:0">
                 <div class="sb-user-name">{{ Auth::user()->name }}</div>
-                <div class="sb-user-role">Admin</div>
+                <div class="sb-user-role">{{ ucfirst(Auth::user()->role) }}</div>
             </div>
             <form method="POST" action="{{ route('admin.logout') }}">
                 @csrf

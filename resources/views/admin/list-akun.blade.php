@@ -60,7 +60,7 @@
 
             <select name="role" class="filter-select text-[12.5px] border border-gray-200 rounded-xl px-3 py-2">
                 <option value="">Semua Role</option>
-                @foreach (['employee' => 'Employee', 'hrd' => 'HRD', 'manager' => 'Manager', 'admin' => 'Admin'] as $v => $l)
+                @foreach (['employee' => 'Employee', 'hrd' => 'HRD', 'supervisor' => 'Supervisor', 'manager' => 'Manager', 'admin' => 'Admin'] as $v => $l)
                     <option value="{{ $v }}" {{ request('role') == $v ? 'selected' : '' }}>{{ $l }}
                     </option>
                 @endforeach
@@ -109,8 +109,21 @@
                             <td class="px-6 py-4 font-medium text-gray-800">{{ $user->name }}</td>
                             <td class="px-4 py-4 text-gray-600">{{ $user->email ?? '-' }}</td>
                             <td class="px-4 py-3">
+                                @php
+                                    $roleConfig = [
+                                        'admin' => ['bg' => 'bg-blue-50', 'text' => 'text-blue-700'],
+                                        'hrd' => ['bg' => 'bg-purple-50', 'text' => 'text-purple-700'],
+                                        'supervisor' => ['bg' => 'bg-green-50', 'text' => 'text-green-700'],
+                                        'manager' => ['bg' => 'bg-amber-50', 'text' => 'text-amber-700'],
+                                        'employee' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-600'],
+                                    ];
+                                    $rc = $roleConfig[$user->role] ?? [
+                                        'bg' => 'bg-gray-100',
+                                        'text' => 'text-gray-600',
+                                    ];
+                                @endphp
                                 <span
-                                    class="px-2.5 py-1 rounded-full text-[11.5px] font-semibold {{ $user->role === 'admin' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
+                                    class="px-2.5 py-1 rounded-full text-[11.5px] font-semibold {{ $rc['bg'] }} {{ $rc['text'] }}">
                                     {{ ucfirst($user->role) }}
                                 </span>
                             </td>

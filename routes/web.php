@@ -30,7 +30,7 @@ Route::get('/admin/login', [AuthWebController::class, 'showLogin'])->name('admin
 Route::post('/admin/login', [AuthWebController::class, 'login'])->name('admin.login.post');
 Route::post('/admin/logout', [AuthWebController::class, 'logout'])->name('admin.logout');
 
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'web.access'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminWebController::class, 'dashboard'])->name('dashboard');
 
     // Pengaturan Akun

@@ -139,7 +139,7 @@ class EmployeeController extends Controller
             // Akun user
             'email' => ['nullable', 'email', Rule::unique('users', 'email')->whereNotNull('email')],
             'password' => 'nullable|string|min:6',
-            'role' => 'nullable|in:employee,admin,hrd,manager',
+            'role' => 'nullable|in:employee,admin,hrd,manager,supervisor',
         ]);
 
         try {
@@ -228,7 +228,7 @@ class EmployeeController extends Controller
             // Akun user
             'email' => ['nullable', 'email', Rule::unique('users', 'email')->whereNotNull('email')->ignore($karyawan->user_id)],
             'password' => 'nullable|string|min:6',
-            'role' => 'nullable|in:employee,admin,hrd,manager',
+            'role' => 'nullable|in:employee,admin,hrd,manager,supervisor',
         ]);
 
         try {

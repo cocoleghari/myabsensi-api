@@ -49,7 +49,7 @@ class UserController extends Controller
             'name' => 'required|string|max:200',
             'email' => ['nullable', 'email', Rule::unique('users', 'email')],
             'password' => 'required|string|min:6',
-            'role' => 'required|in:employee,admin,hrd,manager',
+            'role' => 'required|in:employee,admin,hrd,manager,supervisor',
         ]);
 
         User::create([
@@ -74,7 +74,7 @@ class UserController extends Controller
             'name' => 'required|string|max:200',
             'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => 'nullable|string|min:6',
-            'role' => 'required|in:employee,admin,hrd,manager',
+            'role' => 'required|in:employee,admin,hrd,manager,supervisor',
         ]);
 
         $user->name = $data['name'];

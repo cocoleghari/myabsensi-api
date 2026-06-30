@@ -25,6 +25,8 @@ class PermintaanAbsen extends Model
         'catatan_admin',
         'absensi_id',
         'alamat_pengajuan',
+        'jenis',
+        'waktu_koreksi',
     ];
 
     protected $casts = [
@@ -33,6 +35,7 @@ class PermintaanAbsen extends Model
         'latitude' => 'float',
         'longitude' => 'float',
         'jarak_meter' => 'float',
+        'waktu_koreksi' => 'datetime',
     ];
 
     // ── Relations ──────────────────────────────────────────────────────

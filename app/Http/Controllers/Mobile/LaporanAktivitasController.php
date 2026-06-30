@@ -137,7 +137,12 @@ class LaporanAktivitasController extends Controller
             $query->where('employee_id', $request->input('employee_id'));
         }
 
-        if ($request->filled('department_id')) {
+        // Jadi (support array)
+        if ($request->filled('department_ids')) {
+            $ids = (array) $request->input('department_ids');
+            $query->whereHas('employee', fn ($q) => $q->whereIn('department_id', $ids)
+            );
+        } elseif ($request->filled('department_id')) {
             $query->whereHas('employee', fn ($q) => $q->where('department_id', $request->input('department_id'))
             );
         }

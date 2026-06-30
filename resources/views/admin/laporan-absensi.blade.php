@@ -17,12 +17,25 @@
             <p class="text-[11.5px] text-gray-400 mt-1 font-medium">Total {{ $absensi->total() }} record absensi</p>
         </div>
         <div class="flex gap-2 flex-shrink-0">
-            <a href="{{ route('admin.laporan-absensi.export', array_merge(request()->query(), ['tanggal_mulai' => $tanggalMulai, 'tanggal_selesai' => $tanggalSelesai, 'format' => 'detail'])) }}"
+            @php
+                $exportParams = array_merge(request()->query(), [
+                    'tanggal_mulai' => $tanggalMulai,
+                    'tanggal_selesai' => $tanggalSelesai,
+                ]);
+                if (\App\Helpers\ScopeHelper::isLimitedRole()) {
+                    $deptIds = \App\Helpers\ScopeHelper::getDepartmentIds();
+                    if (!empty($deptIds)) {
+                        $exportParams['department_ids'] = $deptIds; // ← array
+                    }
+                }
+            @endphp
+
+            <a href="{{ route('admin.laporan-absensi.export', array_merge($exportParams, ['format' => 'detail'])) }}"
                 class="flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
                 style="background:#0f2d6b">
                 Export Detail
             </a>
-            <a href="{{ route('admin.laporan-absensi.export', array_merge(request()->query(), ['tanggal_mulai' => $tanggalMulai, 'tanggal_selesai' => $tanggalSelesai, 'format' => 'rekap'])) }}"
+            <a href="{{ route('admin.laporan-absensi.export', array_merge($exportParams, ['format' => 'rekap'])) }}"
                 class="flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
                 style="background:#f97316">
                 Export Rekap
@@ -89,7 +102,7 @@
                 <select name="status"
                     class="filter-select text-[12.5px] border border-gray-200 rounded-xl px-3 py-2 flex-1">
                     <option value="">Semua Status</option>
-                    @foreach (['tepat_waktu' => 'Tepat Waktu', 'terlambat' => 'Terlambat', 'diluar_lokasi' => 'Di Luar Lokasi', 'lembur' => 'Lembur'] as $v => $l)
+                    @foreach (['tepat_waktu' => 'Tepat Waktu', 'terlambat' => 'Terlambat', 'diluar_lokasi' => 'Di Luar Lokasi', 'lembur' => 'Lembur', 'hadir' => 'Hadir'] as $v => $l)
                         <option value="{{ $v }}" {{ request('status') == $v ? 'selected' : '' }}>
                             {{ $l }}</option>
                     @endforeach
@@ -111,12 +124,14 @@
             'terlambat' => 'bg-rose-50 text-rose-700',
             'diluar_lokasi' => 'bg-orange-50 text-orange-700',
             'lembur' => 'bg-violet-50 text-violet-700',
+            'hadir' => 'bg-blue-50 text-blue-700',
         ];
         $statusLabels = [
             'tepat_waktu' => 'Tepat Waktu',
             'terlambat' => 'Terlambat',
             'diluar_lokasi' => 'Di Luar Lokasi',
             'lembur' => 'Lembur',
+            'hadir' => 'Hadir',
         ];
     @endphp
 

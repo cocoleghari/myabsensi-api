@@ -17,21 +17,36 @@
             <p class="text-[11.5px] text-gray-400 mt-1 font-medium">Total {{ $aktivitas->total() }} record aktivitas</p>
         </div>
         <div class="flex gap-2 flex-shrink-0">
-            <a href="{{ route('admin.laporan-aktivitas.export', array_merge(request()->query(), ['tanggal_mulai' => $tanggalMulai, 'tanggal_selesai' => $tanggalSelesai, 'format' => 'detail'])) }}"
-                class="flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-                style="background:#0f2d6b">
-                Export Detail
-            </a>
-            <a href="{{ route('admin.laporan-aktivitas.export', array_merge(request()->query(), ['tanggal_mulai' => $tanggalMulai, 'tanggal_selesai' => $tanggalSelesai, 'format' => 'rekap_karyawan'])) }}"
-                class="flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-                style="background:#f97316">
-                Rekap Karyawan
-            </a>
-            <a href="{{ route('admin.laporan-aktivitas.export', array_merge(request()->query(), ['tanggal_mulai' => $tanggalMulai, 'tanggal_selesai' => $tanggalSelesai, 'format' => 'rekap_tipe'])) }}"
-                class="flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-                style="background:#8B5CF6">
-                Rekap Tipe
-            </a>
+            @php
+                $exportParams = array_merge(request()->query(), [
+                    'tanggal_mulai' => $tanggalMulai,
+                    'tanggal_selesai' => $tanggalSelesai,
+                ]);
+                if (\App\Helpers\ScopeHelper::isLimitedRole()) {
+                    $deptIds = \App\Helpers\ScopeHelper::getDepartmentIds();
+                    if (!empty($deptIds)) {
+                        $exportParams['department_ids'] = $deptIds; // ← array
+                    }
+                }
+            @endphp
+
+            <div class="flex gap-2 flex-shrink-0">
+                <a href="{{ route('admin.laporan-aktivitas.export', array_merge($exportParams, ['format' => 'detail'])) }}"
+                    class="flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
+                    style="background:#0f2d6b">
+                    Export Detail
+                </a>
+                <a href="{{ route('admin.laporan-aktivitas.export', array_merge($exportParams, ['format' => 'rekap_karyawan'])) }}"
+                    class="flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
+                    style="background:#f97316">
+                    Rekap Karyawan
+                </a>
+                <a href="{{ route('admin.laporan-aktivitas.export', array_merge($exportParams, ['format' => 'rekap_tipe'])) }}"
+                    class="flex items-center gap-2 px-4 py-3 rounded-xl text-[13px] font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
+                    style="background:#8B5CF6">
+                    Rekap Tipe
+                </a>
+            </div>
         </div>
     </div>
 
