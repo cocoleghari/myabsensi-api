@@ -20,13 +20,16 @@ class FaceRecognitionService
         return $this->callVerifyEndpoint(
             storage_path('app/'.$fotoAbsenPath),
             storage_path('app/'.$fotoReferensiPath),
-            timeout: 15
+            timeout: 90  // FIX: dinaikkan dari 15 → 90 detik
+            // Retinaface pada kondisi traffic tinggi bisa butuh 20-60 detik.
+            // Timeout 15 detik menyebabkan "Gagal menghubungi layanan verifikasi"
+            // padahal Python service masih memproses.
         );
     }
 
     public function verifyByPath(string $absolutePathAbsen, string $absolutePathReferensi): array
     {
-        return $this->callVerifyEndpoint($absolutePathAbsen, $absolutePathReferensi, timeout: 60);
+        return $this->callVerifyEndpoint($absolutePathAbsen, $absolutePathReferensi, timeout: 90);
     }
 
     private function callVerifyEndpoint(string $pathAbsen, string $pathReferensi, int $timeout): array
@@ -38,9 +41,6 @@ class FaceRecognitionService
                 ->post("{$this->pythonServiceUrl}/verify");
 
             // ── Kasus 422: wajah tidak terdeteksi sama sekali ──
-            // PENTING: ini beda dengan "tidak cocok". Jangan ditampilkan sebagai
-            // "Wajah tidak cocok (0%)" karena bisa menyesatkan user — masalahnya
-            // bukan wajah beda orang, tapi foto tidak bisa diproses.
             if ($response->status() === 422) {
                 $errorBody = $response->json('detail', []);
                 $errorType = $errorBody['error_type'] ?? 'unknown';
@@ -83,10 +83,6 @@ class FaceRecognitionService
             $threshold = $data['threshold'] ?? null;
             $detectorUsed = $data['detector_used'] ?? null;
 
-            // Log semua detail mentah — ini yang dipakai untuk debugging kasus
-            // "0% padahal wajah sama". Kalau raw_confidence jauh negatif (misal -1.5),
-            // berarti distance dari DeepFace memang sangat tinggi, bukan cuma
-            // "sedikit di bawah threshold".
             Log::info('Face recognition result', [
                 'verified' => $verified,
                 'confidence' => $confidence,
@@ -103,7 +99,6 @@ class FaceRecognitionService
                     ? 'Wajah berhasil diverifikasi'
                     : 'Wajah tidak cocok ('.round($confidence * 100).'%)',
                 'error_type' => null,
-                // field tambahan, opsional dipakai di frontend/debugging
                 'distance' => $distance,
                 'detector_used' => $detectorUsed,
             ];
